@@ -11,7 +11,11 @@ This app allows the user to select hsv thresholding values take a picture
 ## Install
 
 In principle, this app is compatible with python 2.7 and python 3.5+. 
-Given the, you should be able to run from console.
+Given you have the modules, you should be able to run from console by calling:
+
+```
+python python_hsv_camera.py
+```
 
 ### Requirements
 
