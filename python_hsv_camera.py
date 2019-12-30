@@ -19,7 +19,7 @@ import time
 import numpy as np
 
 def makeentry(parent, caption, width=None, pack_side=tkinter.TOP, **options):
-    tkinter.Label(parent, text=caption).pack(side=tkinter.LEFT)
+    tkinter.Label(parent, text=caption).pack(side=tkinter.TOP)
     entry = tkinter.Entry(parent, **options)
     if width:
         entry.config(width=width)
@@ -40,7 +40,7 @@ class App:
         # open video source (by default this will try to open the computer webcam)
         self.vid = MyVideoCapture(self.video_source)
 
-        self.canvas = tkinter.Canvas(window, width= 1.1 * self.vid.width,
+        self.canvas = tkinter.Canvas(window, width= 2.1 * self.vid.width,
                                      height=1.1 * self.vid.height, borderwidth=0, background="#ffffff")
         self.frame = tkinter.Frame(self.canvas, background="#ffffff")
         self.vsb = tkinter.Scrollbar(window, orient="vertical", command=self.canvas.yview)
@@ -54,22 +54,11 @@ class App:
        
         self.frame.bind("<Configure>", self.onFrameConfigure)
 
-        self.taking_image_var = tkinter.IntVar()
-        self.taking_video_var = tkinter.IntVar()
-
-        self.taking_image = tkinter.Checkbutton(self.top, text="Capture Image", variable = self.taking_image_var)
-        self.taking_image.pack(side=tkinter.TOP)
-
-        self.taking_video = tkinter.Checkbutton(self.top, text="Capture Video", variable = self.taking_video_var)
-        self.taking_video.pack(side=tkinter.TOP)
-
-
-
         # Entry box
         self.entry = makeentry(self.top, "Filename", 50, pack_side=tkinter.TOP)
 
         # Button that lets the user take a snapshot
-        self.btn_snapshot = tkinter.Button(self.top, text="Capture", width=50, command=self.snapshot)
+        self.btn_snapshot = tkinter.Button(self.top, text="Capture Image", width=50, command=self.snapshot)
         self.btn_snapshot.pack(anchor=tkinter.CENTER, expand=True)
 
         # region Sliders ####
@@ -134,61 +123,41 @@ class App:
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
     def snapshot(self):
-        # if video is selected, call video writer, else capture image
-        if(self.taking_video_var.get() == 1):
-        	self.videoWriter(self)
-        else:
-            # Get a frame from the video source
-            ret, frame = self.vid.get_frame()
+        # Get a frame from the video source
+        ret, frame = self.vid.get_frame()
+
+        if ret:
+            # get the mask
+            mask, cont = self.do_contour_math()
+            # look for entry
+            filename = self.entry.get()
+            # clean the entry 
+            self.entry.delete(0, 'end')
+
+            if len(filename) > 0:
+
+                # Get the HSV values
+
+                hsv_name = "HSV_values_" +\
+                       filename + ".csv"
+
+                df = pd.DataFrame({"HSV_min": self.HSV_min, "HSV_max": self.HSV_max})
+
+                df.to_csv(hsv_name, columns=['HSV_min', 'HSV_max'], index=False)
+
+                capture_time = time.strftime("%Y-%m-%d-%H-%M-%S")
+
+                pic_filename =  capture_time + "_" + filename + ".png"
+                mask_filename = capture_time + "_" + filename + '_mask.png'
+
+                cv2.imwrite(pic_filename,
+                      cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+                cv2.imwrite(mask_filename, cv2.cvtColor(mask, cv2.COLOR_RGB2BGR))
+                tkMessageBox.showinfo("All set :)", "Picture saved as: " + pic_filename)
+                tkMessageBox.showinfo("All set :)", "HSV filter values saved as: " + hsv_name)
+            else:
+                tkMessageBox.showinfo("Error", "Please enter a filename")
     
-            if ret:
-                # look for entry
-                filename = self.entry.get()
-
-                if len(filename) > 0:
-
-                    # Get the HSV values
-
-                    hsv_name = "HSV_values_" +\
-                           filename + ".csv"
-
-                    df = pd.DataFrame({"HSV_min": self.HSV_min, "HSV_max": self.HSV_max})
-
-                    df.to_csv(hsv_name, columns=['HSV_min', 'HSV_max'], index=False)
-    
-                    pic_filename = time.strftime("%Y-%m-%d-%H-%M-%S") + "_" + filename + ".png"
-
-                    cv2.imwrite(pic_filename,
-                          cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-                    tkMessageBox.showinfo("All set :)", "Picture saved as: " + pic_filename)
-                    tkMessageBox.showinfo("All set :)", "HSV filter values saved as: " + hsv_name)
-                else:
-                    tkMessageBox.showinfo("Error", "Please enter a filename")
-    
-    def videoWriter(self, event):
-        print("Recording video")
-        cap = cv2.VideoCapture(0)
-        #width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) + 0.5)
-        #height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) + 0.5)
-        size = (self.vid.width, self.vid.height)
-        # TODO: codecs might be a problem here
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        # write at 30 fps
-        out = cv2.VideoWriter('your_video.avi', fourcc, 30, (640, 480))
-
-        while(True):
-            _, frame = cap.read()
-            #cv2.imshow('Recording...', frame)
-            out.write(frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                # TODO: this might be a problem, we might want to define recording time
-                break
-
-        # Release stuff
-        cap.release()
-        out.release()
-        #cv2.destroyAllWindows()
-
     def slider_values(self):
 
         self.HSV_min = (self.H_min_slider.get(), self.S_min_slider.get(), self.V_min_slider.get())
@@ -216,26 +185,11 @@ class App:
         # Get contours
         contours, hier = cv2.findContours(mask, cv2.RETR_EXTERNAL, 2)
 
-        return contours
-
+        return mask, contours
 
     def update(self):
         # Get a frame from the video source
         ret, frame = self.vid.get_frame()
-
-        video_state = self.taking_video_var.get()
-        image_state = self.taking_image_var.get()
-
-        # If we changed from video to image, this will be true
-        if(image_state == 1 and self.capture_mode == "video"):
-            self.taking_video.deselect()
-            self.capture_mode = "image"
-            video_state = self.taking_video
-
-        if(video_state == 1):
-            # remove selection from the other one
-            self.taking_image.deselect()
-            self.capture_mode = "video"
 
         # Get slider values
         self.slider_values()
@@ -248,7 +202,7 @@ class App:
 
         # get contours
 
-        contours = self.do_contour_math()
+        _, contours = self.do_contour_math()
 
         # Draw the contours onto binary mask
         for cts in range(0, len(contours)):
@@ -397,4 +351,4 @@ time.sleep(2)
 selected_video_source = int(np.unique(selected_cam)[0])
 
 # Create a window and pass it to the Application object
-App(tkinter.Tk(), "Image/Video Capture", video_source=selected_video_source)
+App(tkinter.Tk(), "HSV Image Capture", video_source=selected_video_source)
