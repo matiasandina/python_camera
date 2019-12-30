@@ -10,7 +10,7 @@ This app allows the user to select hsv thresholding values take a picture
 
 ## Install
 
-In principle, this app is compatible with pyhon 2.7 and pyhton 3.5+. 
+In principle, this app is compatible with python 2.7 and python 3.5+. 
 Given the, you should be able to run from console.
 
 ### Requirements
