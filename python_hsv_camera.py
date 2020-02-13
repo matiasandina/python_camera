@@ -324,12 +324,12 @@ while True:
                 cv2.putText(frame, 'Selected', (50, 150), cv2.FONT_HERSHEY_SIMPLEX,
                             1, (0, 0, 255), 2)
         cv2.imshow('webcam'+str(webcam), frame)
-    k = cv2.waitKey(1)
+        k = cv2.waitKey(1)
+        if k == ord(str(webcam)):
+            print("Camera ID " + str(webcam) + " Selected")
+            selected_cam.append(webcam)
     if k == ord('q'):
         break
-    if k == ord(str(webcam)):
-        print("Camera ID " + str(webcam) + " Selected")
-        selected_cam.append(webcam)
 
 
 print("Releasing cameras...")
