@@ -21,12 +21,14 @@ class VideoWriter:
   _EXT = ".avi"
 
   # note: extension ".avi" will be added to given video filename
-  def __init__(self, filename=None, fps=20.0, resolution = (640, 480)):
+  def __init__(self, filename=None, fps=20.0, resolution = (640,480)):
     self.filename = filename 
     self.empty_filename = filename is None
     if self.empty_filename:
       return
     print ("\nwriting video to %s" %filename)
+    if resolution is None:
+        resolution = (320, 240)
 
     self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
     self.fps = fps
@@ -111,7 +113,7 @@ class VideoWriter:
       return False
 
   def write_timestamp(self, timestamp):
-    timestamp = timestamp.strftime('%Y-%m-%d_%H:%M:%S:%f')
+    timestamp = timestamp.strftime('%Y-%m-%dT%H:%M:%S:%f')
     # this will write timestamps to file
     # mind that timestamp must be in a [] for numpy to like it
     with open(self.filename + "_timestamp.csv",'a') as outfile:

@@ -10,17 +10,28 @@ import os
 class VideoCamera(object):
     def __init__(
     self,
+    src=0,
     flip = False, usePiCamera = True,
     fps = 20.0,
-    resolution = (640, 480),
-    record = False, record_duration = None, record_timestamp = True
+    resolution = (640,480),
+    record = False, record_duration = None, record_timestamp = True,
+    record_name = None
     ):
 
-        self.vs = VideoStream(usePiCamera = usePiCamera, resolution = resolution).start()
+        if resolution is None:
+            resolution = (320, 240)
+        self.vs = VideoStream(src=src, usePiCamera = usePiCamera, resolution = resolution).start()
+        #if usePiCamera is False:
+        #    # we need to change things here because it will ignore resolution if not using the piCam
+        #    # https://github.com/PyImageSearch/imutils/issues/55
+        #    # this is not currently working!!!!
+        #    self.vs.stream.set(3, resolution[0])
+        #    self.vs.stream.set(4, resolution[1])
         self.flip = flip
         # Record settings ###
         # no recording set at init
         self.rec_set = False
+        self.record = record
         # trigger record
         self.trigger_record = record
         self.resolution = resolution
@@ -28,15 +39,19 @@ class VideoCamera(object):
         # we might be in trouble if we switch from color to grayscale
         self.isColor = self.is_color()
         self.record_start = None
+        self.record_name = record_name
         if (record_duration is not None):
             session_time = datetime.datetime.strptime(record_duration, '%H:%M:%S')
             # Transform the time into number of seconds
             seconds = (session_time.hour * 60 + session_time.minute) * 60 + session_time.second
             self.record_duration = seconds
         self.record_timestamp = record_timestamp
-        if (record == True):
+        if (self.record == True):
             # we will use timestamps to prevent overwriting
-            self.name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")) + "_output"
+            if self.record_name is None:
+                self.name = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S') + "_output"
+            else:
+                self.name = f"{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}_{str(self.record_name)}_output"
             # start video_writer
             self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution = self.resolution)
         time.sleep(2.0)
@@ -45,6 +60,9 @@ class VideoCamera(object):
 
     def __del__(self):
         self.vs.stop()
+        self.vs.stream.release()
+        if (self.record):
+            self.video_writer.stop()
 
     def is_color(self):
         frame = self.vs.read()
@@ -199,8 +217,10 @@ class VideoCamera(object):
                 # stop the video writer
                 self.video_writer.stop()
                 print("Video truncated...initializing new clip")
-                # create a new filename
-                self.name = str(datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")) + "_output"
+                if self.record_name is None:
+                   self.name = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S') + "_output"
+                else:
+                    self.name = f"{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}_{str(self.record_name)}_output"
                 # start the writer again
                 self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution = self.resolution)
 
