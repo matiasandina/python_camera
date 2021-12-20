@@ -113,7 +113,8 @@ class VideoWriter:
       return False
 
   def write_timestamp(self, timestamp):
-    timestamp = timestamp.strftime('%Y-%m-%dT%H:%M:%S:%f')
+    # '%Y-%m-%dT%H:%M:%S.%f' is better than '%Y-%m-%dT%H:%M:%S:%f'
+    timestamp = timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')
     # this will write timestamps to file
     # mind that timestamp must be in a [] for numpy to like it
     with open(self.filename + "_timestamp.csv",'a') as outfile:
