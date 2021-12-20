@@ -46,12 +46,14 @@ class VideoCamera(object):
             seconds = (session_time.hour * 60 + session_time.minute) * 60 + session_time.second
             self.record_duration = seconds
         self.record_timestamp = record_timestamp
+        # this is so that all timestamped things have a consistent format
+        self.timestamp_format = '%Y-%m-%dT%H-%M-%S'
         if (self.record == True):
             # we will use timestamps to prevent overwriting
             if self.record_name is None:
-                self.name = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S') + "_output"
+                self.name = datetime.datetime.now().strftime(self.timestamp_format) + "_output"
             else:
-                self.name = f"{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}_{str(self.record_name)}_output"
+                self.name = f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}_output"
             # start video_writer
             self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution = self.resolution)
         time.sleep(2.0)
@@ -218,9 +220,9 @@ class VideoCamera(object):
                 self.video_writer.stop()
                 print("Video truncated...initializing new clip")
                 if self.record_name is None:
-                   self.name = datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S') + "_output"
+                   self.name = datetime.datetime.now().strftime(self.timestamp_format) + "_output"
                 else:
-                    self.name = f"{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}_{str(self.record_name)}_output"
+                    self.name = f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}_output"
                 # start the writer again
                 self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution = self.resolution)
 
