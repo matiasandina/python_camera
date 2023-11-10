@@ -8,7 +8,7 @@
 # code comes from
 # Ulrich Stern
 # https://github.com/ulrichstern/SkinnerTrax/blob/master/rt-trx/rt-trx.py
-# modified by Matias Andina 2020-02-01
+# modified by Matias Andina 2023-11-08
 
 import queue
 import threading
@@ -17,16 +17,14 @@ import time
 import numpy as np
 
 class VideoWriter:
-
-  _EXT = ".avi"
-
-  # note: extension ".avi" will be added to given video filename
   def __init__(self, filename=None, fps=20.0, resolution = (640,480)):
+    self._EXT = ".avi"
     self.filename = filename 
     self.empty_filename = filename is None
     if self.empty_filename:
       return
-    print ("\nwriting video to %s" %filename)
+    else:
+      print (f"\nReceived video name: {self.filename}{self._EXT}")
     if resolution is None:
         resolution = (320, 240)
 
@@ -77,6 +75,7 @@ class VideoWriter:
         dt = self.dt
       else:
         dt = max(0, t0 + self.n * self.dt - time.time())
+      # Add a print statement to confirm frame rate control
       # this will put the thread to sleep to satisfy frame rate
       time.sleep(dt)
 
@@ -98,7 +97,7 @@ class VideoWriter:
   def frameNum(self): return None if self.empty_filename else self.n
 
   # returns the video filename (without extension), None if no video written
-  def filename(self): return self.filename
+  def get_filename(self): return self.filename
 
   # stop video writer
   def stop(self):

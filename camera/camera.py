@@ -6,13 +6,14 @@ import numpy as np
 import datetime
 from videowriter import VideoWriter
 import os
+import threading
 
 class VideoCamera(object):
     def __init__(
     self,
     src=0,
     flip = False, usePiCamera = True,
-    fps = 20.0,
+    fps = 25,
     resolution = (640,480),
     record = False, record_duration = None, record_timestamp = True,
     record_name = None
@@ -56,14 +57,21 @@ class VideoCamera(object):
                 self.name = f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}_output"
             # start video_writer
             self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution = self.resolution)
-        time.sleep(2.0)
 
 
 
-    def __del__(self):
-        self.vs.stop()
-        self.vs.stream.release()
-        if (self.record):
+    def close(self):
+        # Stop the video stream
+        if hasattr(self, 'vs') and self.vs is not None:
+            self.vs.stop()
+
+        # Release the stream if it's not using PiCamera
+        if hasattr(self, 'usePiCamera') and not self.usePiCamera:
+            if hasattr(self.vs, 'stream') and self.vs.stream is not None:
+                self.vs.stream.release()
+
+        # Stop the video writer if recording is enabled
+        if self.record and hasattr(self, 'video_writer'):
             self.video_writer.stop()
 
     def is_color(self):
@@ -79,26 +87,57 @@ class VideoCamera(object):
             return np.flip(frame, 0)
         return frame
 
+    def start_recording(self):
+        if not self.record:
+            print("Recording is not enabled.")
+            return
+
+        if not hasattr(self, 'record_thread') or not self.record_thread.is_alive():
+            self.trigger_record = True
+            self.record_start = datetime.datetime.now()  # Initialize record_start here
+            self.record_thread = threading.Thread(target=self._record_loop)
+            self.record_thread.start()
+            print("Started Recording in thread.")
+        else:
+            print("Recording is already in progress.")
+
+    def is_recording(self):
+            return self.trigger_record
+
+    def stop_recording(self, from_thread=False):
+        self.trigger_record = False
+        if not from_thread and hasattr(self, 'record_thread') and self.record_thread.is_alive():
+            self.record_thread.join()  # Wait only if called from outside the thread
+        print("Recording stopped.")
+
+    def _record_loop(self):
+        while self.trigger_record:
+            frame = self.read()
+            current_time = datetime.datetime.now()
+
+            # Process the frame for recording
+            self.process_frame_for_recording(frame)
+
+            if self.record_duration and (current_time - self.record_start).total_seconds() > self.record_duration:
+                break  # Stop recording once duration is reached
+
+        # Signal that recording is done
+        self.trigger_record = False
+        self.video_writer.stop()  # Make sure to stop the video writer
+    
     def read(self):
-        # this is the read function we want to do processing
+        # Capture the frame
         frame = self.flip_if_needed(self.vs.read())
-        timestamp = datetime.datetime.now()
-        if (self.trigger_record):
-            # check whether the video size is ok or we need to chunk
-            self.check_video_filesize()
-            if (self.record_timestamp):
-                cv2.putText(frame, str(timestamp),
-                    (10, 50), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 
-                    1,
-                    (255,255,255),
-                    1)
-            # let's only call it if the framerate is ok
-            if (self.check_framerate(timestamp)):
-                self.video_writer.put_to_q(frame, timestamp)
-            # self.record(frame)
         return frame
 
+    def process_frame_for_recording(self, frame):
+        timestamp = datetime.datetime.now()
+        if self.trigger_record:
+            self.check_video_filesize()
+            if self.record_timestamp:
+                cv2.putText(frame, timestamp.isoformat(timespec='seconds'), (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1)
+            if self.check_framerate(timestamp):
+                self.video_writer.put_to_q(frame, timestamp)
     # This function handles the posting of .jpg through ip stream
     def get_frame(self, label_time, camera_stamp = None):
         # This function ends up converting to jpg and timestamping
@@ -148,30 +187,19 @@ class VideoCamera(object):
         return (jpeg.tobytes(), found_objects)
 
     def check_framerate(self, timestamp):
-        if (self.rec_set == False):
-            self.rec_set = True
+        if not hasattr(self, 'prev_frame'):
             self.prev_frame = timestamp
-            self.record_start = self.prev_frame
             return True
-        else:
-            # account for fps
-            # otherwise, we would need to account for this via waitKey(int(1000/fps)) 
-            delta_time = (timestamp - self.prev_frame).total_seconds() 
-            if (delta_time > 1/self.fps):
-                self.prev_frame = timestamp
-                return True
 
-            current_duration = (self.prev_frame - self.record_start).total_seconds()
+        # Calculate the time difference between the current frame and the previous frame
+        delta_time = (timestamp - self.prev_frame).total_seconds()
 
-            if (current_duration > self.record_duration):
-                print(self.prev_frame)
-                print(self.record_start)
-                print(self.record_duration)
-                # stop the recording (not the camera)
-                self.video_writer.stop()
-                # stop triggering record in the future
-                self.trigger_record = False
-        # if we got up to here and no conditions were met
+        # If the time difference is greater than or equal to the desired frame interval, process this frame
+        if delta_time >= 1 / self.fps:
+            self.prev_frame = timestamp
+            return True
+
+        # If the time difference is less than the desired frame interval, skip this frame
         return False
 
     def check_video_filesize(self):
