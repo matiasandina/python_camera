@@ -147,42 +147,6 @@ class VideoCamera(object):
         ret, jpeg = cv2.imencode('.jpg', frame)
         return (jpeg.tobytes(), found_objects)
 
-    # The function below has problems with frame rate not being constant
-    # We account for frame rate by assuming constant frame rate but that fails in real life
-    def record(self, frame):
-        """
-        Opencv VideoWriter
-        https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_gui/py_video_display/py_video_display.html
-        This time we create a VideoWriter object. 
-        We should specify the output file name (eg: output.avi).
-        Then we should specify the FourCC code (details in next paragraph).
-        Then number of frames per second (fps) and frame size should be passed.
-        And last one is isColor flag. If it is True, encoder expect color frame,
-        otherwise it works with grayscale frame.
-
-        Example comes from here
-        https://stackoverflow.com/questions/30509573/writing-an-mp4-video-using-python-opencv
-        """
-        if (self.rec_set == False):
-            self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            self.recorder = cv2.VideoWriter(self.name, self.fourcc, self.fps, self.resolution, self.isColor)
-            self.rec_set = True
-            self.prev_frame = time.time()
-            self.record_start = self.prev_frame
-        else:
-            # account for fps
-            # otherwise, we would need to account for this via waitKey(int(1000/fps)) 
-            current_frame = time.time()
-            if (current_frame - self.prev_frame > 1/self.fps):
-                self.prev_frame = current_frame
-
-            if (self.prev_frame - self.record_start > self.record_duration):
-                print(self.prev_frame)
-                print(self.record_start)
-                print(self.record_duration)
-                # stop the recording (not the camera)
-                self.trigger_record = False
-
     def check_framerate(self, timestamp):
         if (self.rec_set == False):
             self.rec_set = True
