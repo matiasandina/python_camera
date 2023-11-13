@@ -15,7 +15,7 @@ class VideoCamera(object):
     flip = False, usePiCamera = True,
     fps = 25,
     resolution = (640,480),
-    record = False, record_duration = None, record_timestamp = True,
+    record_enabled = False, record_duration = None, record_timestamp = True,
     record_name = None
     ):
 
@@ -30,11 +30,9 @@ class VideoCamera(object):
         #    self.vs.stream.set(4, resolution[1])
         self.flip = flip
         # Record settings ###
-        # no recording set at init
-        self.rec_set = False
-        self.record = record
+        self.record_enabled = record_enabled
         # trigger record
-        self.trigger_record = record
+        self.trigger_record = record_enabled
         self.resolution = resolution
         self.fps = fps
         # we might be in trouble if we switch from color to grayscale
@@ -52,16 +50,12 @@ class VideoCamera(object):
         self.record_timestamp = record_timestamp
         # this is so that all timestamped things have a consistent format
         self.timestamp_format = '%Y-%m-%dT%H-%M-%S'
-        if (self.record == True):
-            # we will use timestamps to prevent overwriting
-            if self.record_name is None:
-                self.name = datetime.datetime.now().strftime(self.timestamp_format) + "_output"
-            else:
-                self.name = f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}_output"
-            # start video_writer
-            self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution = self.resolution)
 
-
+    def generate_filename(self):
+        if self.record_name is None:
+            return datetime.datetime.now().strftime(self.timestamp_format) + "_output"
+        else:
+            return f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}_output"
 
     def close(self):
         # Stop the video stream
@@ -74,7 +68,7 @@ class VideoCamera(object):
                 self.vs.stream.release()
 
         # Stop the video writer if recording is enabled
-        if self.record and hasattr(self, 'video_writer'):
+        if self.record_enabled and hasattr(self, 'video_writer'):
             self.video_writer.stop()
 
     def is_color(self):
@@ -91,13 +85,15 @@ class VideoCamera(object):
         return frame
 
     def start_recording(self):
-        if not self.record:
-            print("Recording is not enabled.")
+        if not self.record_enabled:
+            print("Recording is not enabled. Please re-initialize camera with self.record_enabled = True")
             return
 
         if not hasattr(self, 'record_thread') or not self.record_thread.is_alive():
             self.trigger_record = True
-            self.record_start = datetime.datetime.now()  # Initialize record_start here
+            self.record_start = datetime.datetime.now()
+            self.name = self.generate_filename()  # Generate filename
+            self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution=self.resolution)  # Initialize video writer
             self.record_thread = threading.Thread(target=self._record_loop)
             self.record_thread.start()
             print("Started Recording in thread.")
