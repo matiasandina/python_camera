@@ -54,8 +54,28 @@ class CameraSettingsUI(QWidget):
         self.start_button.clicked.connect(self.onStartClicked)
         layout.addWidget(self.start_button)
 
+        # Start Recording Button
+        self.start_recording_button = QPushButton('Start Recording', self)
+        self.start_recording_button.clicked.connect(self.startRecording)
+        layout.addWidget(self.start_recording_button)
+
+        # Stop Recording Button
+        self.stop_recording_button = QPushButton('Stop Recording', self)
+        self.stop_recording_button.clicked.connect(self.stopRecording)
+        layout.addWidget(self.stop_recording_button)
+
         self.setLayout(layout)
         self.setWindowTitle('Camera Settings')
+
+    def startRecording(self):
+        if self.vc and not self.recording:
+            self.vc.start_recording()
+            print("Recording started.")
+
+    def stopRecording(self):
+        if self.vc and self.recording:
+            self.vc.stop_recording()
+            print("Recording stopped.")
 
     def populateCameraList(self):
         availableCameras = QCameraInfo.availableCameras()
@@ -92,48 +112,40 @@ class CameraSettingsUI(QWidget):
         usePiCamera = self.usePiCamera_check.isChecked()
         record_duration = self.record_duration_input.text() or None
         record_name = self.record_name_input.text() or None
-        vc = VideoCamera(src = cameraDeviceName, flip = flip, usePiCamera=usePiCamera, fps = fps, resolution = resolution, record_duration = record_duration, record_name = record_name)    
-        print("Starting camera preview. Press 'r' to start/stop recording, 'q' to quit.")
-        recording = False
-        recording_start_time = None
+
+        self.vc = VideoCamera(src=cameraDeviceName, flip=flip, usePiCamera=usePiCamera, fps=fps, resolution=resolution, record_duration=record_duration, record_name=record_name)
+        
+        print("Starting camera with the following settings:")
+        print(f"src: {cameraDeviceName}, flip: {flip}, usePiCamera: {usePiCamera}, fps: {fps}, resolution: {resolution}, record_duration: {record_duration}, record_name: {record_name}")
+
+        self.recording_start_time = None
+        self.recording = False
         while True:
-            frame = vc.read()
-            
-            if recording:
-                if not vc.is_recording():
-                    recording = False
+            frame = self.vc.read()
+            if self.recording:
+                if not self.vc.is_recording():
+                    self.recording = False
                     print("\nRecording ended.")
                 else:
-                    elapsed_time = datetime.datetime.now() - recording_start_time
+                    elapsed_time = datetime.datetime.now() - self.recording_start_time
                     elapsed_str = str(elapsed_time).split('.')[0]  # Format as HH:MM:SS
                     print(f"Status: Recording {elapsed_str} / {record_duration}", end='\r')
             else:
                 cv2.putText(frame, "NOT RECORDING", (frame.shape[0] // 5 , frame.shape[1] // 3), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
             cv2.imshow("Camera Preview", frame)
             key = cv2.waitKey(1) & 0xFF
-            if key == ord('r'):
-                if not recording:
-                    vc.start_recording()
-                    recording = True
-                    recording_start_time = datetime.datetime.now()
-                    print("\nRecording started.")
-                else:
-                    vc.stop_recording()
-                    recording = False
-                    print("\nRecording stopped.")
-            elif key == ord('q'):
-                if recording:
-                    vc.stop_recording()
-                    recording = False
+            if key == ord('q'):
+                if self.recording:
+                    self.vc.stop_recording()
+                    self.recording = False
                     print("\nRecording stopped.")
                 break
 
         # Cleanup
-        vc.close()
+        self.vc.close()
         cv2.destroyAllWindows()
 
-        print("Starting camera with the following settings:")
-        print(f"src: {src}, flip: {flip}, usePiCamera: {usePiCamera}, fps: {fps}, resolution: {resolution}, record_duration: {record_duration}, record_name: {record_name}")
+
 
 if __name__ == '__main__':
     # Check if the operating system is Ubuntu running GNOME on Wayland
