@@ -140,11 +140,11 @@ class CameraSettingsUI(QWidget):
         for key, value in args_dict.items():
             print(f"  {key}: {value}")
 
-        # Close the current UI
-        self.close()
-
         # Launch main.py with collected parameters
-        subprocess.Popen(cmd)
+        subprocess.run(cmd)
+
+        # If wanted to close the current UI
+        #self.close()
 
 
 
