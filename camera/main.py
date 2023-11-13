@@ -14,8 +14,6 @@ def main():
     parser.add_argument("--record_name", type=str, default=None, help="Name of the record file (default: None)")
 
     args = parser.parse_args()
-    print(f"Parsed Arguments: {args}")
-
     # Convert device_name to int if it's a digit, otherwise keep it as string
     device_name = int(args.device_name) if args.device_name.isdigit() else args.device_name
     # Convert resolution from string to tuple
