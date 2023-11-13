@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QComboBo
 from PyQt5.QtMultimedia import QCamera, QCameraInfo
 from camera import VideoCamera
 import cv2
+import datetime
 
 class CameraSettingsUI(QWidget):
     def __init__(self):
