@@ -1,50 +1,14 @@
-# python_camera
+This repository contains a set of scripts for interacting with cameras using Python.
 
-## Summary
+## Camera
 
-This app allows the user to select hsv thresholding values take a picture
+Check [Camera](https://github.com/matiasandina/python_camera/tree/master/camera) for a regular video camera with recording.
+You can also check the pyside6 version [here](https://github.com/matiasandina/python_camera/tree/master/qtcamera/pyside6).
 
-1. Select a camera to capture from
-1. Create HSV thresholding mask
-1. Save image, HSV mask, and HSV filter values
+## mlx
 
-## Install
+This contains a minimal script to get a blob from a mlx90640 sensor using `adafruit_mlx90640`.
 
-In principle, this app is compatible with python 2.7 and python 3.5+. 
-Given you have the modules, you should be able to run from console by calling:
+## hsv_camera
 
-```
-python python_hsv_camera.py
-```
-
-### Requirements
-
-These are the modules imported by this script.
-
-```
-from __future__ import print_function
-try:
-    # for python 2
-    import Tkinter as tkinter
-except ImportError:
-    # for python 3
-    import tkinter as tkinter
-import cv2
-import PIL.Image, PIL.ImageTk
-import time
-try:
-    # for python 2
-    import tkMessageBox
-except ImportError:
-    # for python 3
-    from tkinter import messagebox as tkMessageBox
-import pandas as pd
-import time
-import numpy as np
-```
-
-## Usage
-
-## Contribute
-
-This is a preliminary release. Please file issues to make this software work better.
+Check [HSV_camera](https://github.com/matiasandina/python_camera/tree/master/hsv_camera) for access to HSV thresholding values for a regular camera.
