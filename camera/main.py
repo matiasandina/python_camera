@@ -1,11 +1,37 @@
+import argparse
 from camera import VideoCamera
 import cv2
-import datetime
 
 def main():
-    record_duration = "00:05:00" # change duration of recording here
-    record_name = None # change from None to something else for naming
-    vc = VideoCamera(usePiCamera=False, record=True, record_duration=record_duration, record_name = record_name)
+    parser = argparse.ArgumentParser(description="Run camera with specified settings.")
+    parser.add_argument("--device_name", type=str, default="0", help="Camera device name or index (default: 0)")
+    parser.add_argument("--resolution", type=str, default="640x480", help="Resolution (default: 640x480)")
+    parser.add_argument("--fps", type=int, default=24, help="Frames per second (default: 24)")
+    parser.add_argument("--flip", action='store_true', help="Flip the camera feed")
+    parser.add_argument("--use_pi_camera", action='store_true', default=False, help="Use PiCamera (default: True)")
+    parser.add_argument("--record_duration", type=str, default=None, help="Record duration in HH:MM:SS (default: None)")
+    parser.add_argument("--record_name", type=str, default=None, help="Name of the record file (default: None)")
+
+    args = parser.parse_args()
+    
+    # Convert device_name to int if it's a digit, otherwise keep it as string
+    device_name = int(args.device_name) if args.device_name.isdigit() else args.device_name
+    # Convert resolution from string to tuple
+    resolution = tuple(map(int, args.resolution.split('x')))
+    # Convert "None" strings to Python None value
+    record_duration = None if args.record_duration == "None" else args.record_duration
+    record_name = None if args.record_name == "None" else args.record_name
+
+    # Initialize VideoCamera with parsed arguments
+    vc = VideoCamera(
+        src=device_name,
+        flip=args.flip,
+        usePiCamera=args.use_pi_camera,
+        fps=args.fps,
+        resolution=resolution,
+        record_duration=record_duration,
+        record_name=record_name
+    )
 
     print("Starting camera preview. Press 'r' to start/stop recording, 'q' to quit.")
     recording = False

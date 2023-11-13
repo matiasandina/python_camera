@@ -6,6 +6,7 @@ from PyQt5.QtMultimedia import QCamera, QCameraInfo
 from camera import VideoCamera
 import cv2
 import datetime
+import subprocess
 
 class CameraSettingsUI(QWidget):
     def __init__(self):
@@ -55,18 +56,19 @@ class CameraSettingsUI(QWidget):
         layout.addWidget(self.start_button)
 
         # Start Recording Button
-        self.start_recording_button = QPushButton('Start Recording', self)
-        self.start_recording_button.clicked.connect(self.startRecording)
-        layout.addWidget(self.start_recording_button)
+        #self.start_recording_button = QPushButton('Start Recording', self)
+        #self.start_recording_button.clicked.connect(self.startRecording)
+        #layout.addWidget(self.start_recording_button)
 
         # Stop Recording Button
-        self.stop_recording_button = QPushButton('Stop Recording', self)
-        self.stop_recording_button.clicked.connect(self.stopRecording)
-        layout.addWidget(self.stop_recording_button)
+        #self.stop_recording_button = QPushButton('Stop Recording', self)
+        #self.stop_recording_button.clicked.connect(self.stopRecording)
+        #layout.addWidget(self.stop_recording_button)
 
         self.setLayout(layout)
         self.setWindowTitle('Camera Settings')
 
+    # not using these methods now
     def startRecording(self):
         if self.vc and not self.recording:
             self.vc.start_recording()
@@ -105,45 +107,44 @@ class CameraSettingsUI(QWidget):
         camera.unload()
 
     def onStartClicked(self):
+        # Collect values from the form
         cameraDeviceName = self.src_combo.currentData()
         resolution = self.resolution_combo.currentText()
-        fps = float(self.fps_combo.currentText())
+        fps = self.fps_combo.currentText()
         flip = self.flip_check.isChecked()
         usePiCamera = self.usePiCamera_check.isChecked()
-        record_duration = self.record_duration_input.text() or None
-        record_name = self.record_name_input.text() or None
+        record_duration = self.record_duration_input.text() or "None"
+        record_name = self.record_name_input.text() or "None"
 
-        self.vc = VideoCamera(src=cameraDeviceName, flip=flip, usePiCamera=usePiCamera, fps=fps, resolution=resolution, record_duration=record_duration, record_name=record_name)
-        
-        print("Starting camera with the following settings:")
-        print(f"src: {cameraDeviceName}, flip: {flip}, usePiCamera: {usePiCamera}, fps: {fps}, resolution: {resolution}, record_duration: {record_duration}, record_name: {record_name}")
+        # Prepare command with arguments
+        args_dict = {
+            "--device_name": cameraDeviceName,
+            "--resolution": resolution,
+            "--fps": str(fps),
+            "--flip": flip,
+            "--use_pi_camera": usePiCamera,
+            "--record_duration": record_duration,
+            "--record_name": record_name
+        }
 
-        self.recording_start_time = None
-        self.recording = False
-        while True:
-            frame = self.vc.read()
-            if self.recording:
-                if not self.vc.is_recording():
-                    self.recording = False
-                    print("\nRecording ended.")
-                else:
-                    elapsed_time = datetime.datetime.now() - self.recording_start_time
-                    elapsed_str = str(elapsed_time).split('.')[0]  # Format as HH:MM:SS
-                    print(f"Status: Recording {elapsed_str} / {record_duration}", end='\r')
-            else:
-                cv2.putText(frame, "NOT RECORDING", (frame.shape[0] // 5 , frame.shape[1] // 3), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
-            cv2.imshow("Camera Preview", frame)
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
-                if self.recording:
-                    self.vc.stop_recording()
-                    self.recording = False
-                    print("\nRecording stopped.")
-                break
+        # Construct command list and filter out empty arguments
+        cmd = [sys.executable, "main.py"]
+        for key, value in args_dict.items():
+            if value not in [None, "", False]:
+                cmd.append(key)
+                if value is not True:  # For boolean flags, don't add the value part
+                    cmd.append(str(value))
 
-        # Cleanup
-        self.vc.close()
-        cv2.destroyAllWindows()
+        # Print formatted command arguments
+        print("Launching 'main.py' with the following arguments:")
+        for key, value in args_dict.items():
+            print(f"  {key}: {value}")
+
+        # Close the current UI
+        self.close()
+
+        # Launch main.py with collected parameters
+        subprocess.Popen(cmd)
 
 
 
