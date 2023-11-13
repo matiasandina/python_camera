@@ -14,7 +14,8 @@ def main():
     parser.add_argument("--record_name", type=str, default=None, help="Name of the record file (default: None)")
 
     args = parser.parse_args()
-    
+    print(f"Parsed Arguments: {args}")
+
     # Convert device_name to int if it's a digit, otherwise keep it as string
     device_name = int(args.device_name) if args.device_name.isdigit() else args.device_name
     # Convert resolution from string to tuple
@@ -31,7 +32,8 @@ def main():
         fps=args.fps,
         resolution=resolution,
         record_duration=record_duration,
-        record_name=record_name
+        record_name=record_name,
+        record_enabled = True # <- this is key to enable recordings!!!
     )
 
     print("Starting camera preview. Press 'r' to start/stop recording, 'q' to quit.")
@@ -39,7 +41,7 @@ def main():
     recording_start_time = None
     while True:
         frame = vc.read()
-        
+
         if recording:
             if not vc.is_recording():
                 recording = False
