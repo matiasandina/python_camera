@@ -41,11 +41,14 @@ class VideoCamera(object):
         self.isColor = self.is_color()
         self.record_start = None
         self.record_name = record_name
-        if (record_duration is not None):
-            session_time = datetime.datetime.strptime(record_duration, '%H:%M:%S')
-            # Transform the time into number of seconds
-            seconds = (session_time.hour * 60 + session_time.minute) * 60 + session_time.second
-            self.record_duration = seconds
+        self.record_duration = None  # Default to None (endless recording)
+        if record_duration is not None:
+            try:
+                session_time = datetime.datetime.strptime(record_duration, '%H:%M:%S')
+                # Transform the time into number of seconds
+                self.record_duration = (session_time.hour * 60 + session_time.minute) * 60 + session_time.second
+            except ValueError:
+                raise ValueError("record_duration must be in HH:MM:SS format")
         self.record_timestamp = record_timestamp
         # this is so that all timestamped things have a consistent format
         self.timestamp_format = '%Y-%m-%dT%H-%M-%S'
@@ -117,8 +120,7 @@ class VideoCamera(object):
 
             # Process the frame for recording
             self.process_frame_for_recording(frame)
-
-            if self.record_duration and (current_time - self.record_start).total_seconds() > self.record_duration:
+            if self.record_duration is not None and (current_time - self.record_start).total_seconds() > self.record_duration:
                 break  # Stop recording once duration is reached
 
         # Signal that recording is done
@@ -207,7 +209,7 @@ class VideoCamera(object):
         if os.path.exists(self.name + ".avi"):
             current_size = os.stat(self.name + ".avi").st_size
             # size will be in bytes, let's have a limit of 100 Mb
-            if (current_size > 100 * 1024 * 1024):
+            if (current_size > 1000 * 1024 * 1024):
                 # stop the video writer
                 self.video_writer.stop()
                 print("Video truncated...initializing new clip")
