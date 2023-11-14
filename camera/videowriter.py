@@ -8,7 +8,7 @@
 # code comes from
 # Ulrich Stern
 # https://github.com/ulrichstern/SkinnerTrax/blob/master/rt-trx/rt-trx.py
-# modified by Matias Andina 2023-11-08
+# modified by Matias Andina 2023-11-14
 
 import queue
 import threading
@@ -17,18 +17,39 @@ import time
 import numpy as np
 
 class VideoWriter:
-  def __init__(self, filename=None, fps=20.0, resolution = (640,480)):
-    self._EXT = ".avi"
-    self.filename = filename 
+  SUPPORTED_FORMATS = {
+      '.avi': ['XVID', 'MJPG', 'DIVX'],
+      # some codecs need opencv to be built from from source and not pip installed?
+      # see here https://github.com/opencv/opencv-python/issues/81 
+      # and here https://github.com/opencv/opencv-python/issues/207
+      '.mp4': ['AVC1', 'H264', 'HEVC', 'X264', 'MP4V'],
+      # .mkv VP90 is open source but it's computationally expensive!
+      '.mkv': ['VP90']
+  }
+
+  def __init__(self, filename=None, fps=20.0, resolution=(640, 480), extension='.mp4', codec='mp4v'):
+    self._EXT = extension.lower()
+    self.codec = codec.upper()
+    self.filename = filename
     self.empty_filename = filename is None
     if self.empty_filename:
+      print("No filename provided. Exiting VideoWriter()")
       return
     else:
-      print (f"\nReceived video name: {self.filename}{self._EXT}")
-    if resolution is None:
-        resolution = (320, 240)
+      print(f"\nReceived video name: {self.filename}{self._EXT}")
 
-    self.fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    if self._EXT not in self.SUPPORTED_FORMATS:
+      raise ValueError(f"Unsupported file extension: {self._EXT}")
+
+    if self.codec not in self.SUPPORTED_FORMATS[self._EXT]:
+        raise ValueError(f"Codec {self.codec} is not supported for {self._EXT} files")
+
+    if resolution is None:
+      print("No resolution provided, defaulting to (640x480)")
+      resolution = (640, 480)
+
+    self.fourcc = cv2.VideoWriter_fourcc(*self.codec)
+    # Rest of your code to initialize the VideoWriter object
     self.fps = fps
     self.dt = 1.0/fps
     self.resolution = resolution

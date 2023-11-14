@@ -12,16 +12,20 @@ class VideoCamera(object):
     def __init__(
     self,
     src=0,
-    flip = False, usePiCamera = True,
+    flip = False, usePiCamera = False,
     fps = 25,
     resolution = (640,480),
     record_enabled = False, record_duration = None, record_timestamp = True,
-    record_name = None
+    record_name = None, record_extension = ".mp4", record_codec = 'mp4v'
     ):
 
         if resolution is None:
             resolution = (320, 240)
-        self.vs = VideoStream(src=src, usePiCamera = usePiCamera, resolution = resolution).start()
+        self.usePiCamera = usePiCamera
+        self.vs = VideoStream(src=src, usePiCamera = self.usePiCamera, resolution = resolution).start()
+        # initialize the camera
+        print("Initializing stream")
+        time.sleep(2)
         #if usePiCamera is False:
         #    # we need to change things here because it will ignore resolution if not using the piCam
         #    # https://github.com/PyImageSearch/imutils/issues/55
@@ -40,6 +44,8 @@ class VideoCamera(object):
         self.record_start = None
         self.record_name = record_name
         self.record_duration = None  # Default to None (endless recording)
+        self.record_extension = record_extension
+        self.record_codec = record_codec
         if record_duration is not None:
             try:
                 session_time = datetime.datetime.strptime(record_duration, '%H:%M:%S')
@@ -50,6 +56,15 @@ class VideoCamera(object):
         self.record_timestamp = record_timestamp
         # this is so that all timestamped things have a consistent format
         self.timestamp_format = '%Y-%m-%dT%H-%M-%S'
+        # dynamic adjustments for text positioning ?
+        #x_pos = int(frame.shape[1] * 0.02)  # 2% from the left
+        #y_pos = int(frame.shape[0] * 0.10)  # 10% from the top
+        #scale_factor = frame.shape[1] / 640
+        #font_size = 1 * scale_factor
+        #thickness = int(1 * scale_factor)
+        # we can scale the font to make it larger when having different resolution than 640
+        self.scale_factor = self.vs.read().shape[0] / 640  # Assuming 640 is the width for standard resolution
+        self.font_size = 1 * self.scale_factor
 
     def generate_filename(self):
         if self.record_name is None:
@@ -58,6 +73,10 @@ class VideoCamera(object):
             return f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}_output"
 
     def close(self):
+        # Stop the video writer if recording is enabled
+        if self.record_enabled and hasattr(self, 'video_writer'):
+            self.video_writer.stop()
+
         # Stop the video stream
         if hasattr(self, 'vs') and self.vs is not None:
             self.vs.stop()
@@ -65,11 +84,8 @@ class VideoCamera(object):
         # Release the stream if it's not using PiCamera
         if hasattr(self, 'usePiCamera') and not self.usePiCamera:
             if hasattr(self.vs, 'stream') and self.vs.stream is not None:
+                print("Releasing Camera Stream")
                 self.vs.stream.release()
-
-        # Stop the video writer if recording is enabled
-        if self.record_enabled and hasattr(self, 'video_writer'):
-            self.video_writer.stop()
 
     def is_color(self):
         frame = self.vs.read()
@@ -93,7 +109,7 @@ class VideoCamera(object):
             self.trigger_record = True
             self.record_start = datetime.datetime.now()
             self.name = self.generate_filename()  # Generate filename
-            self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution=self.resolution)  # Initialize video writer
+            self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution=self.resolution, extension = self.record_extension, codec = self.record_codec)  # Initialize video writer
             self.record_thread = threading.Thread(target=self._record_loop)
             self.record_thread.start()
             print("Started Recording in thread.")
@@ -126,6 +142,9 @@ class VideoCamera(object):
     def read(self):
         # Capture the frame
         frame = self.flip_if_needed(self.vs.read())
+            # Check if the frame is not at the desired resolution and resize if needed
+        if frame.shape[0] != self.resolution[0] or frame.shape[1] != self.resolution[1]:
+            frame = cv2.resize(frame, (self.resolution[0], self.resolution[1]))
         return frame
 
     def process_frame_for_recording(self, frame):
@@ -133,7 +152,7 @@ class VideoCamera(object):
         if self.trigger_record:
             self.check_video_filesize()
             if self.record_timestamp:
-                cv2.putText(frame, timestamp.isoformat(timespec='seconds'), (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1)
+                cv2.putText(frame, timestamp.isoformat(timespec='seconds'), (10, 50), cv2.FONT_HERSHEY_SIMPLEX, self.font_size, (255, 255, 255), 1)
             if self.check_framerate(timestamp):
                 self.video_writer.put_to_q(frame, timestamp)
     # This function handles the posting of .jpg through ip stream
@@ -201,9 +220,8 @@ class VideoCamera(object):
         return False
 
     def check_video_filesize(self):
-        #TODO: Potential problem harcoded extension, it's also harcoded on videowriter 
-        if os.path.exists(self.name + ".avi"):
-            current_size = os.stat(self.name + ".avi").st_size
+        if os.path.exists(self.name + self.record_extension):
+            current_size = os.stat(self.name + self.record_extension).st_size
             # size will be in bytes, let's have a limit of 100 Mb
             if (current_size > 1000 * 1024 * 1024):
                 # stop the video writer
@@ -214,5 +232,5 @@ class VideoCamera(object):
                 else:
                     self.name = f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}_output"
                 # start the writer again
-                self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution = self.resolution)
+                self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution = self.resolution, extension = self.record_extension, codec = self.record_codec)
 
