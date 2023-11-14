@@ -24,7 +24,7 @@ class CameraSettingsUI(QWidget):
 
         # Manually set common resolutions
         self.resolution_combo = QComboBox(self)
-        common_resolutions = ["640x480", "800x600", "1280x720", "1920x1080"]
+        common_resolutions = ["320x240", "640x480", "800x600", "1280x720", "1920x1080"]
         for res in common_resolutions:
             self.resolution_combo.addItem(res)
         layout.addWidget(QLabel('Resolution'))
