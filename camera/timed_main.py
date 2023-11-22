@@ -30,9 +30,9 @@ def main():
     parser.add_argument("--fps", type=int, default=24, help="Frames per second (default: 24)")
     parser.add_argument("--flip", action='store_true', help="Flip the camera feed")
     parser.add_argument("--use_pi_camera", action='store_true', default=False, help="Use PiCamera (default: True)")
-    parser.add_argument("--record_duration", type=str, default=None, help="Record duration in HH:MM:SS (default: None)")
+    parser.add_argument("--record_duration", type=str, default=None, help="Record duration in HH:MM:SS", required=True)
     parser.add_argument("--record_name", type=str, default=None, help="Name of the record file (default: None)")
-    parser.add_argument("--record_start_time", type=str, default=None, help="Time of record start in HH:MM:SS (default: None). Recording will start at the next HH:MM:SS==record_start_time and last for `record_duration`." )
+    parser.add_argument("--record_start_time", type=str, default=None, help="Time of record start in HH:MM:SS (default: None). Recording will start at the next HH:MM:SS==record_start_time and last for `record_duration`.", required=True)
 
     args = parser.parse_args()
     # Convert device_name to int if it's a digit, otherwise keep it as string
@@ -47,7 +47,16 @@ def main():
     except ValueError:
         raise ValueError("`recording_start_time` must be in HH:MM:SS format")
 
+    # We need a fixed record duration, otherwise this will loop
+    try:
+        session_time = datetime.datetime.strptime(record_duration, '%H:%M:%S')
+        # Transform the time into number of seconds
+        record_duration_sec = (session_time.hour * 60 + session_time.minute) * 60 + session_time.second
+    except ValueError:
+        raise ValueError("record_duration must be in HH:MM:SS format")
+
     record_start_datetime = handle_start_time(record_start_time)
+    record_end_datetime = record_start_datetime + datetime.timedelta(seconds = record_duration_sec)
 
     # Initialize VideoCamera with parsed arguments
     vc = VideoCamera(
@@ -61,7 +70,7 @@ def main():
         record_enabled = True # <- this is key to enable recordings!!!
     )
 
-    print(f"Starting camera preview. Recording will start at {record_start_datetime}. Press 'q' to quit.")
+    print(f"Starting camera preview. Recording from {record_start_datetime} to {record_end_datetime}. Press 'q' to quit.")
     recording = False
     recording_start_time = None
     while True:
@@ -87,13 +96,24 @@ def main():
                 print("\nRecording stopped.")
             break
 
+        # Check if it's time to stop the recording
+        if recording and now >= record_end_datetime:
+            vc.stop_recording() 
+            recording = False
+            print("\nRecording stopped.")
+
         # Check if it's time to start recording
-        if datetime.datetime.now() >= record_start_datetime and not recording:
-            vc.start_recording()
-            recording = True
-            recording_start_time = datetime.datetime.now()
-            print("\nRecording started.")
-            
+        if not recording and now >= record_start_datetime:
+            # do not trigger a new start 
+            if now <= record_end_datetime:
+                vc.start_recording()
+                recording = True
+                recording_start_time = datetime.datetime.now()
+                print("\nRecording started.")
+            else:
+                print("Recorded Finished. Exiting.")
+                break
+
     # Cleanup
     vc.close()
     cv2.destroyAllWindows()
