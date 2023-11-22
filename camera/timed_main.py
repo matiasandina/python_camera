@@ -79,19 +79,21 @@ def main():
             cv2.putText(frame, "NOT RECORDING", (frame.shape[0] // 5 , frame.shape[1] // 3), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
         cv2.imshow("Camera Preview", frame)
         key = cv2.waitKey(1) & 0xFF
-        if datetime.datetime.now() >= record_start_datetime:
-            if not recording:
-                vc.start_recording()
-                recording = True
-                recording_start_time = datetime.datetime.now()
-                print("\nRecording started.")
-        elif key == ord('q'):
+        # Check for 'q' key press to quit recording or the program
+        if key == ord('q'):
             if recording:
                 vc.stop_recording()
                 recording = False
                 print("\nRecording stopped.")
             break
 
+        # Check if it's time to start recording
+        if datetime.datetime.now() >= record_start_datetime and not recording:
+            vc.start_recording()
+            recording = True
+            recording_start_time = datetime.datetime.now()
+            print("\nRecording started.")
+            
     # Cleanup
     vc.close()
     cv2.destroyAllWindows()
