@@ -96,6 +96,7 @@ def main():
                 print("\nRecording stopped.")
             break
 
+        now = datetime.datetime.now()
         # Check if it's time to stop the recording
         if recording and now >= record_end_datetime:
             vc.stop_recording() 
