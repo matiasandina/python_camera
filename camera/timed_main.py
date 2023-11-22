@@ -15,11 +15,11 @@ def handle_start_time(record_start_time):
     now = datetime.datetime.now()
     # Determine if the recording time is for today or tomorrow
     if now.hour > record_start_time.hour or (now.hour == record_start_time.hour and now.minute >= record_start_time.minute):
-        record_start_datetime = datetime.datetime.combine(now.date(), record_start_time.time())
-    else:
         # Set to tomorrow's date
         tomorrow = now.date() + datetime.timedelta(days=1)
         record_start_datetime = datetime.datetime.combine(tomorrow, record_start_time.time())
+    else:
+        record_start_datetime = datetime.datetime.combine(now.date(), record_start_time.time())
     return record_start_datetime
 
 
