@@ -43,7 +43,7 @@ def main():
     record_duration = None if args.record_duration == "None" else args.record_duration
     record_name = None if args.record_name == "None" else args.record_name
     try:
-        record_start_time = datetime.datetime.strptime(hms_str, '%H:%M:%S')
+        record_start_time = datetime.datetime.strptime(args.record_start_time, '%H:%M:%S')
     except ValueError:
         raise ValueError("`recording_start_time` must be in HH:MM:SS format")
 
