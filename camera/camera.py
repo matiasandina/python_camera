@@ -63,7 +63,9 @@ class VideoCamera(object):
         #font_size = 1 * scale_factor
         #thickness = int(1 * scale_factor)
         # we can scale the font to make it larger when having different resolution than 640
-        self.scale_factor = self.vs.read().shape[0] / 640  # Assuming 640 is the width for standard resolution
+        # Remember >>> cam.read().shape will be (height, width, channels)
+        # (480, 640, 3)
+        self.scale_factor = self.vs.read().shape[1] / 640  # Assuming 640 is the width for standard resolution
         self.font_size = 1 * self.scale_factor
 
     def generate_filename(self):
