@@ -4,6 +4,38 @@ This application provides a flexible interface for video recording using OpenCV 
 It comprises four main components: `camera.py`, `videowriter.py`, `main.py`, and `camera_settings_ui.py`. 
 There are other scripts in this repository that are not documented at the moment (less complex / usable / interdependent).
 
+## Install
+
+This software uses mostly two libraries:
+
+* OpenCV
+* imutils
+
+Short story: YOU NEED TO INSTALL `imutils` from a specific branch
+
+Long story: Read below
+
+It turns out that there's a bug on the master branch of `imutils` and the camera stream was not obeying `resolution` parameters. See [this PR](https://github.com/PyImageSearch/imutils/pull/177). The class constructor totally disregards resolution and will always be set to (640x240). So we could also not get higher resolution and that's why we have to hack it by `cv2.resize()` later (see [#7](https://github.com/matiasandina/python_camera/issues/7]) and [#9](https://github.com/matiasandina/python_camera/issues/9)). 
+
+This camera software application is somewhat dated (read from 2019!) and `imutils` is also dated/not regularly mantained. 
+
+Nothing but patching is worth the time for now.
+
+> [!IMPORTANT]  
+> ANY NEW INSTALLS SHOULD BE DONE FROM SPECIFIC BRANCH
+
+For GLOBAL install (*not recommended!!*)
+
+```
+sudo pip3 install git+https://github.com/karjanme/imutils.git@master
+```
+Inside environment
+
+```
+# conda activate  // source bin activate
+(env-name)$ pip3 install git+https://github.com/karjanme/imutils.git@master
+```
+
 ## Quick Start
 ### Running the Application
 Run main.py directly from the command line with optional arguments for customization.

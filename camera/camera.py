@@ -22,16 +22,11 @@ class VideoCamera(object):
         if resolution is None:
             resolution = (320, 240)
         self.usePiCamera = usePiCamera
-        self.vs = VideoStream(src=src, usePiCamera = self.usePiCamera, resolution = resolution).start()
         # initialize the camera
-        print("Initializing stream")
+        print(f"Trying to initialize stream with resolution {resolution}")
+        self.vs = VideoStream(src=src, usePiCamera = self.usePiCamera, resolution = resolution).start()
         time.sleep(2)
-        #if usePiCamera is False:
-        #    # we need to change things here because it will ignore resolution if not using the piCam
-        #    # https://github.com/PyImageSearch/imutils/issues/55
-        #    # this is not currently working!!!!
-        #    self.vs.stream.set(3, resolution[0])
-        #    self.vs.stream.set(4, resolution[1])
+        print(f"Confirmed stream resolution is {self.vs.read()}")
         self.flip = flip
         # Record settings ###
         self.record_enabled = record_enabled
@@ -145,7 +140,10 @@ class VideoCamera(object):
         # Capture the frame
         frame = self.flip_if_needed(self.vs.read())
             # Check if the frame is not at the desired resolution and resize if needed
-        if frame.shape[0] != self.resolution[0] or frame.shape[1] != self.resolution[1]:
+            # Note: cv2.resize expects size in (width, height) format
+        if frame.shape[1] != self.resolution[0] or frame.shape[0] != self.resolution[1]:
+            print("WARNING: FOR SOME REASON YOUR CAMERA CAPTURE RESOLUTION DOES NOT MATCH YOUR REQUESTED SPECS")
+            print(f"Digitally resizing to specified {self.resolution}")
             frame = cv2.resize(frame, (self.resolution[0], self.resolution[1]))
         return frame
 
