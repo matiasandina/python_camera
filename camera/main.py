@@ -49,7 +49,7 @@ def main():
                 elapsed_str = str(elapsed_time).split('.')[0]  # Format as HH:MM:SS
                 print(f"Status: Recording {elapsed_str} / {record_duration}", end='\r')
         else:
-            cv2.putText(frame, "NOT RECORDING", (frame.shape[0] // 5 , frame.shape[1] // 3), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
+            cv2.putText(frame, "NOT RECORDING", (frame.shape[0] // 5 , frame.shape[1] // 3), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
         cv2.imshow("Camera Preview", frame)
         key = cv2.waitKey(1) & 0xFF
         if key == ord('r'):
