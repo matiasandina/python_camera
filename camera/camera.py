@@ -26,7 +26,7 @@ class VideoCamera(object):
         print(f"Trying to initialize stream with resolution {resolution}")
         self.vs = VideoStream(src=src, usePiCamera = self.usePiCamera, resolution = resolution).start()
         time.sleep(2)
-        print(f"Confirmed stream resolution is {self.vs.read()}")
+        print(f"Confirmed stream resolution is {self.vs.read().shape}")
         self.flip = flip
         # Record settings ###
         self.record_enabled = record_enabled
