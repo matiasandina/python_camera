@@ -67,7 +67,7 @@ class VideoCamera(object):
         if self.record_name is None:
             return datetime.datetime.now().strftime(self.timestamp_format) + "_output"
         else:
-            return f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}_output"
+            return f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}"
 
     def close(self):
         # Stop the video writer if recording is enabled
@@ -230,7 +230,7 @@ class VideoCamera(object):
                 if self.record_name is None:
                    self.name = datetime.datetime.now().strftime(self.timestamp_format) + "_output"
                 else:
-                    self.name = f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}_output"
+                    self.name = f"{datetime.datetime.now().strftime(self.timestamp_format)}_{str(self.record_name)}"
                 # start the writer again
                 self.video_writer = VideoWriter(filename=self.name, fps=self.fps, resolution = self.resolution, extension = self.record_extension, codec = self.record_codec)
 
