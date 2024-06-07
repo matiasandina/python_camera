@@ -36,6 +36,46 @@ Inside environment
 (env-name)$ pip3 install git+https://github.com/karjanme/imutils.git@master
 ```
 
+The latest tested environment is for python 3.10
+
+```
+# Name                    Version                   Build  Channel
+_openmp_mutex             4.5                       2_gnu    conda-forge
+bcrypt                    4.1.3                    pypi_0    pypi
+bzip2                     1.0.8                h31becfc_5    conda-forge
+ca-certificates           2024.6.2             hcefe29a_0    conda-forge
+cffi                      1.16.0                   pypi_0    pypi
+cryptography              42.0.8                   pypi_0    pypi
+imutils                   0.5.3                    pypi_0    pypi
+ld_impl_linux-aarch64     2.40                 h9fc2d93_1    conda-forge
+libffi                    3.4.2                h3557bc0_5    conda-forge
+libgcc-ng                 13.2.0               he277a41_7    conda-forge
+libgomp                   13.2.0               he277a41_7    conda-forge
+libnsl                    2.0.1                h31becfc_0    conda-forge
+libsqlite                 3.45.3               h194ca79_0    conda-forge
+libuuid                   2.38.1               hb4cce97_0    conda-forge
+libxcrypt                 4.4.36               h31becfc_1    conda-forge
+libzlib                   1.3.1                h68df207_1    conda-forge
+ncurses                   6.5                  h0425590_0    conda-forge
+numpy                     1.26.4                   pypi_0    pypi
+opencv-python             4.7.0.72                 pypi_0    pypi
+openssl                   3.3.0                h68df207_3    conda-forge
+paramiko                  3.4.0                    pypi_0    pypi
+pip                       23.0.1             pyhd8ed1ab_0    conda-forge
+pycparser                 2.22                     pypi_0    pypi
+pynacl                    1.5.0                    pypi_0    pypi
+python                    3.10.14         hbbe8eec_0_cpython    conda-forge
+readline                  8.2                  h8fc344f_1    conda-forge
+setuptools                70.0.0             pyhd8ed1ab_0    conda-forge
+tk                        8.6.13               h194ca79_0    conda-forge
+tzdata                    2024a                h0c530f3_0    conda-forge
+wheel                     0.43.0             pyhd8ed1ab_1    conda-forge
+xz                        5.2.6                h9cdd2b7_0    conda-forge
+
+```
+
+
+
 ## Quick Start
 ### Running the Application
 Run main.py directly from the command line with optional arguments for customization.
