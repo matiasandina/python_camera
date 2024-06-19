@@ -4,40 +4,40 @@ import argparse
 import shutil
 import re
 
-def compress_videos(animal_id, crf, base_folder, out_folder):
-    # Define a regex pattern to match filenames with a date and the animal_id
-    # Assuming the session ID is the date-time part formatted as YYYY-MM-DDTHH-MM-SS
+def compress_videos(animal_id, crf, base_folder):
+    out_folder = os.path.join(base_folder, animal_id)
     pattern = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})_.*" + re.escape(animal_id) + r".*")
 
-    # Process each file in the base folder
+    print(f"Checking for the existence of output folder: {out_folder}")
+    if not os.path.exists(out_folder):
+        print(f"Output folder not found. It will be created: {out_folder}")
+        # os.makedirs(out_folder)
+
     for file in sorted(os.listdir(base_folder)):
-        # Check if the file matches the expected pattern
         match = pattern.match(file)
         if match:
-            session_id = match.group(1).replace('-', '').replace('T', '').replace(':', '')
+            session_id = match.group(1).replace('-', '').replace('T', '')
+            session_folder = os.path.join(out_folder, session_id, 'beh')
+            print(f"Checking for the existence of session folder: {session_folder}")
+            if not os.path.exists(session_folder):
+                print(f"Session folder not found. It will be created: {session_folder}")
+                # os.makedirs(session_folder)
+
             base_name = os.path.basename(file)
             file_name, file_extension = os.path.splitext(base_name)
-
-            out_folder = os.path.join(out_folder, session_id, "beh")
-
-            if not os.path.exists(out_folder):
-                os.makedirs(out_folder)
-
-            output_file = os.path.join(out_folder, f'sub-{animal_id}_ses-{session_id}{file_extension}')
-
-            # Process .mp4 files
+            output_file = os.path.join(session_folder, f'sub-{animal_id}_ses-{session_id}_video{file_extension}')
+            
             if file_extension == '.mp4':
-                output_file = os.path.join(out_folder, f'sub-{animal_id}_ses-{session_id}_video{file_extension}')
-                cmd = f"ffmpeg -i {os.path.join(base_folder, file)} -c:v libx264 -crf {str(crf)} -c:a copy {output_file}"
-                subprocess.run(cmd, shell=True, check=True)
-                print(f"Video file compressed with crf {crf} and copied to folder {out_folder}")
+                input_file = os.path.join(base_folder, file)
+                cmd = f"ffmpeg -i {input_file} -c:v libx264 -crf {str(crf)} -c:a copy {output_file}"
+                print(f"Command to be run: {cmd}")
+                print(f"Output video file would be saved to: {output_file}")
+                # subprocess.run(cmd, shell=True, check=True)
 
-            # Process .csv files
             elif file_extension == '.csv':
-                output_file = os.path.join(out_folder, f'sub-{animal_id}_ses-{session_id}_timestamps{file_extension}')
-                shutil.copy(os.path.join(base_folder, file), output_file)
-                print(f"Timestamps file copied to folder {out_folder}")
-
+                output_csv = os.path.join(session_folder, f'sub-{animal_id}_ses-{session_id}_timestamps{file_extension}')
+                print(f"CSV file will be copied from {os.path.join(base_folder, file)} to {output_csv}")
+                # shutil.copy(os.path.join(base_folder, file), output_csv)
 
 """
 from `{timestamp}_{animal_id}.mp4` to `/animal_id/session_id/beh/sub-{animal_id}_ses-{session_id}_video.mp4`
