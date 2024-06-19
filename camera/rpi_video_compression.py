@@ -9,10 +9,6 @@ def compress_videos(animal_id, crf, base_folder, out_folder):
     # Assuming the session ID is the date-time part formatted as YYYY-MM-DDTHH-MM-SS
     pattern = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})_.*" + re.escape(animal_id) + r".*")
 
-    # Ensure the output directory exists
-    if not os.path.exists(out_folder):
-        os.makedirs(out_folder)
-
     # Process each file in the base folder
     for file in sorted(os.listdir(base_folder)):
         # Check if the file matches the expected pattern
