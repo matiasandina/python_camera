@@ -11,7 +11,7 @@ def compress_videos(animal_id, crf, base_folder, out_folder):
     print(f"Checking for the existence of output folder: {out_folder}")
     if not os.path.exists(out_folder):
         print(f"Output folder not found. It will be created: {out_folder}")
-        # os.makedirs(out_folder)
+        os.makedirs(out_folder)
 
     for file in sorted(os.listdir(base_folder)):
         match = pattern.match(file)
@@ -21,7 +21,7 @@ def compress_videos(animal_id, crf, base_folder, out_folder):
             print(f"Checking for the existence of session folder: {session_folder}")
             if not os.path.exists(session_folder):
                 print(f"Session folder not found. It will be created: {session_folder}")
-                # os.makedirs(session_folder)
+                os.makedirs(session_folder)
 
             base_name = os.path.basename(file)
             file_name, file_extension = os.path.splitext(base_name)
@@ -32,12 +32,12 @@ def compress_videos(animal_id, crf, base_folder, out_folder):
                 cmd = f"ffmpeg -i {input_file} -c:v libx264 -crf {str(crf)} -c:a copy {output_file}"
                 print(f"Command to be run: {cmd}")
                 print(f"Output video file would be saved to: {output_file}")
-                # subprocess.run(cmd, shell=True, check=True)
+                subprocess.run(cmd, shell=True, check=True)
 
             elif file_extension == '.csv':
                 output_csv = os.path.join(session_folder, f'sub-{animal_id}_ses-{session_id}_timestamps{file_extension}')
                 print(f"CSV file will be copied from {os.path.join(base_folder, file)} to {output_csv}")
-                # shutil.copy(os.path.join(base_folder, file), output_csv)
+                shutil.copy(os.path.join(base_folder, file), output_csv)
 
 """
 from `{timestamp}_{animal_id}.mp4` to `/animal_id/session_id/beh/sub-{animal_id}_ses-{session_id}_video.mp4`
