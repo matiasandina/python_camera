@@ -4,7 +4,7 @@ import argparse
 import shutil
 import re
 
-def compress_videos(animal_id, crf, base_folder):
+def compress_videos(animal_id, crf, base_folder, out_folder):
     out_folder = os.path.join(base_folder, animal_id)
     pattern = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})_.*" + re.escape(animal_id) + r".*")
 
