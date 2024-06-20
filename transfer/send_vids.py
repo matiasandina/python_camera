@@ -4,39 +4,19 @@
 import subprocess
 import os
 import paramiko
-import netifaces
 import argparse
 from py_console import console
 import yaml
 
-# SFTP settings for Windows machine
 
-"""
-windows_hostname = "host_IP"
-windows_port = 22
-windows_username = 'dlc'
-windows_password = 'dlc'
-
-I'm just pretending that there is a .yaml file within the rpi that stores this information in this fomrat
-# Configuration data
-user: target-user
-ip: ip-address
-pass: target-password
-port: target-port #default port is usually 22
-
-Ok, I checked the send_ip repo and it seems that Matias set up a config.yaml file (yay!)
-
-Path: home/config.yaml
-"""
-
-
-# Function to get the MAC address of the default interface
-#Not sure what to do with this
-def get_mac_address(interface):
+def get_mac(interface = 'wlan0'):
+    # This is good for Raspberry PIs, not good for other OS !
+    # possible interfaces ['wlan0', 'eth0']
     try:
-        return netifaces.ifaddresses(interface)[netifaces.AF_LINK][0]['addr']
-    except ValueError:
-        return None
+        mac = open('/sys/class/net/'+interface+'/address').readline()
+    except:
+        mac = "00:00:00:00:00:00"
+    return mac[0:17]
 
 def read_config():
 
