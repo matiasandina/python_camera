@@ -22,35 +22,37 @@ def read_config(path):
         config = yaml.safe_load(file)
     return config
 
-def copy_vids(local_folder, remote_folder, config):
-    target_user = config.get('user')
-    target_ip = config.get('ip')
-    target_password = config.get('pass')
-    target_port = config.get('port')
-
-    transport = paramiko.Transport((target_ip, target_port))
-    transport.connect(username=target_user, password=target_password)
-    sftp = paramiko.SFTPClient.from_transport(transport)
-
-    #not great
+def sync(local_folder, remote_folder, config):
+    nas_user = config.get('user')
+    nas_ip = config.get('ip')
+    nas_password = config.get('pass')
+    nas_port = config.get('port')
+    
     try:
-        sftp.stat(remote_folder)
-    except FileNotFoundError:
-        # user must have write permissions
-        sftp.mkdir(remote_folder)
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        print(f"Connecting to {nas_user}@{nas_ip} at port {nas_port}")
+        client.connect(nas_ip, port=nas_port, username=nas_user, password=nas_password, timeout=10)
 
-    # Transfer files from local folder to remote folder
-    existing_files = set(sftp.listdir(remote_folder)) #Test this later - could just make duplicates anyway
+        # Determine the remote directory path, creating it if necessary
+        print(f"Checking if remote directory {remote_folder} exists")
+        stdin, stdout, stderr = client.exec_command(f'mkdir -p {remote_folder}')
+        stderr_output = stderr.read()  # Wait for the directory creation command to complete
+        if stderr_output:
+            print(f"Error during directory creation: {stderr_output}")
+        else:
+            print(f"Remote directory is ready at {remote_folder}")
 
-    for file_name in os.listdir(local_folder):
-        if file_name not in existing_files:
-            local_path = os.path.join(local_folder, file_name)
-            remote_path = os.path.join(remote_folder, file_name)
-            sftp.put(local_path, remote_path)
-
-    # Close the SFTP connection
-    sftp.close()
-    transport.close()
+        # Use rsync to sync the data directory
+        print("Trying to send data via rsync")
+        rsync_command = f"rsync -avz -e 'ssh -p {nas_port}' {local_folder}/ {nas_user}@{nas_ip}:{remote_folder}"
+        os.system(rsync_command)
+        
+        client.close()
+    except paramiko.SSHException as ssh_err:
+        print(f"An SSH error occurred: {ssh_err}")
+    except Exception as e:
+        print(f"An error occurred during data synchronization: {e}")
 
 if __name__ =="__main__":
 
@@ -58,7 +60,7 @@ if __name__ =="__main__":
     # parser.add_argument("--start_date", help="Starting date for batch processing (format: YYYY-MM-DD)")
     parser.add_argument("--animal_id", required=True, help="Animal ID for constructing the base path")
     parser.add_argument("--local_folder", required=False, help="Full path of local folder (everything before `animal_id`) if not using default hard-coded one", default=None)
-    parser.add_argument("--project_id", required=True, help="Project ID for constructing project path to send videos to. This will construct a project in the form of MLA/project_id", default=None)
+    parser.add_argument("--project_id", required=True, help="Project ID for constructing project path to send videos to. This will construct a project in the form of MLA/project_id. Do not end this with a '/'", default=None)
     parser.add_argument("--config_path", required=True, help="Path to credentials to establish sftp connection to server/remote computer where data will be sent to.", default=None)
     args = parser.parse_args()
     if args.base_folder is not None:
@@ -75,7 +77,4 @@ if __name__ =="__main__":
     print(f"Data will be sent to {remote_folder}")
     assert args.config_path is not None
     config = read_config(args.config_path)
-    copy_vids(remote_folder, local_folder, config)
-
-    # Get the MAC address of the Ethernet interface
-    mac_address = get_mac('wlan0')
+    sync(local_folder=local_folder, remote_folder=local_folder, config=config)
