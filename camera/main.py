@@ -7,7 +7,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run camera with specified settings.")
     parser.add_argument("--device_name", type=str, default="0", help="Camera device name or index (default: 0)")
     parser.add_argument("--resolution", type=str, default="640x480", help="Resolution (default: 640x480)")
-    parser.add_argument("--fps", type=int, default=24, help="Frames per second (default: 24)")
+    parser.add_argument("--fps", type=int, default=15, help="Frames per second (default: 24)")
     parser.add_argument("--flip", action='store_true', help="Flip the camera feed")
     parser.add_argument("--use_pi_camera", action='store_true', default=False, help="Use PiCamera (default: True)")
     parser.add_argument("--record_duration", type=str, default=None, help="Record duration in HH:MM:SS (default: None)")
