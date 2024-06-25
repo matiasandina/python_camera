@@ -73,7 +73,7 @@ if __name__ =="__main__":
         print(f"Using User-Provided path: {local_folder}")
     else:
         # go with hardcoded
-        local_folder = "/home/python_camera/camera"
+        local_folder = "/home/pi/python_camera/camera"
         local_folder = os.path.join(local_folder, args.animal_id)
         print(f"Using Hard-Coded local path: {local_folder}")
 
