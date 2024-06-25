@@ -36,12 +36,13 @@ def sync(local_folder, remote_folder, config):
 
         # Determine the remote directory path, creating it if necessary
         print(f"Checking if remote directory {remote_folder} exists")
-        stdin, stdout, stderr = client.exec_command(f'mkdir -p {remote_folder}')
-        stderr_output = stderr.read()  # Wait for the directory creation command to complete
-        if stderr_output:
-            print(f"Error during directory creation: {stderr_output}")
+        if not os.path.isdir(remote_folder):
+            print(f"Creating remote directory {remote_folder}")
+            stdin, stdout, stderr = client.exec_command(f'mkdir -p {remote_folder}')
+            stderr.read()  # Wait for the directory creation command to complete
+            print(f"Created {remote_folder}")
         else:
-            print(f"Remote directory is ready at {remote_folder}")
+            print(f"{remote_folder} already exists")
 
         # Use rsync to sync the data directory
         rsync_command = f"rsync -avz -e 'ssh -p {nas_port}' {local_folder}/ {nas_user}@{nas_ip}:{remote_folder}"
@@ -61,8 +62,9 @@ if __name__ =="__main__":
     # parser.add_argument("--start_date", help="Starting date for batch processing (format: YYYY-MM-DD)")
     parser.add_argument("--animal_id", required=True, help="Animal ID for constructing the base path")
     parser.add_argument("--local_folder", required=False, help="Full path of local folder (everything before `animal_id`) if not using default hard-coded one", default=None)
-    parser.add_argument("--project_id", required=True, help="Project ID for constructing project path to send videos to. This will construct a project in the form of MLA/project_id. Do not end this with a '/'", default=None)
+    parser.add_argument("--project_id", required=True, help="Project ID for constructing project path to send videos to. This will construct a project in the form of /volume1/MLA/pilots/project_id. Do not end this with a '/'", default=None)
     parser.add_argument("--config_path", required=True, help="Path to credentials to establish sftp connection to server/remote computer where data will be sent to.", default=None)
+    parser.add_argument("--remote_folder", required=False, default=None, help="Remote path to direct the files. Resulting will be {remote_path}/{project_id}")
     args = parser.parse_args()
 
     if args.local_folder is not None:
@@ -73,9 +75,15 @@ if __name__ =="__main__":
         # go with hardcoded
         local_folder = "/home/python_camera/camera"
         local_folder = os.path.join(local_folder, args.animal_id)
-        print(f"Using Hard-Coded path: {local_folder}")
+        print(f"Using Hard-Coded local path: {local_folder}")
 
-    remote_folder = os.path.join("volume1", "MLA", args.project_id, args.animal_id)
+    if args.remote_folder is None:
+        remote_folder = os.path.join("volume1", "MLA", 'pilots', args.project_id, args.animal_id)
+        print(f"Using Hard-Coded remote path: {remote_folder}")
+    else:
+        remote_folder = args.remote_folder
+        print(f"Using User-Provided remote path: {remote_folder}")
+
     print(f"Data will be sent to {remote_folder}")
     assert args.config_path is not None
     config = read_config(args.config_path)
