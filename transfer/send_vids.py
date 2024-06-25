@@ -44,8 +44,9 @@ def sync(local_folder, remote_folder, config):
             print(f"Remote directory is ready at {remote_folder}")
 
         # Use rsync to sync the data directory
-        print("Trying to send data via rsync")
         rsync_command = f"rsync -avz -e 'ssh -p {nas_port}' {local_folder}/ {nas_user}@{nas_ip}:{remote_folder}"
+        print("Trying to send data via rsync. Command to execute")
+        print(f'{rsync_command}')
         os.system(rsync_command)
 
         client.close()
