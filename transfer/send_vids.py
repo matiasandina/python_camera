@@ -74,7 +74,7 @@ if __name__ =="__main__":
         local_folder = os.path.join(local_folder, args.animal_id)
         print(f"Using Hard-Coded path: {local_folder}")
 
-    remote_folder = os.path.join("MLA", args.project_id, args.animal_id)
+    remote_folder = os.path.join("volume1", "MLA", args.project_id, args.animal_id)
     print(f"Data will be sent to {remote_folder}")
     assert args.config_path is not None
     config = read_config(args.config_path)
