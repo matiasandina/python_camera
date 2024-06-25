@@ -45,7 +45,7 @@ def sync(local_folder, remote_folder, config):
             print(f"{remote_folder} already exists")
 
         # Use rsync to sync the data directory
-        rsync_command = f"rsync -avz -e 'ssh -p {nas_port}' {local_folder}/ {nas_user}@{nas_ip}:{remote_folder}"
+        rsync_command = f"rsync -avz {local_folder}/ {nas_user}@{nas_ip}:{remote_folder}"
         print("Trying to send data via rsync. Command to execute")
         print(f'{rsync_command}')
         os.system(rsync_command)
