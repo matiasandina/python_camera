@@ -78,4 +78,4 @@ if __name__ =="__main__":
     print(f"Data will be sent to {remote_folder}")
     assert args.config_path is not None
     config = read_config(args.config_path)
-    sync(local_folder=local_folder, remote_folder=local_folder, config=config)
+    sync(local_folder=local_folder, remote_folder=remote_folder, config=config)
