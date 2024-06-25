@@ -78,7 +78,7 @@ if __name__ =="__main__":
         print(f"Using Hard-Coded local path: {local_folder}")
 
     if args.remote_folder is None:
-        remote_folder = os.path.join("volume1", "MLA", 'pilots', args.project_id, args.animal_id)
+        remote_folder = os.path.join("/volume1", "MLA", 'pilots', args.project_id, args.animal_id)
         print(f"Using Hard-Coded remote path: {remote_folder}")
     else:
         remote_folder = args.remote_folder
