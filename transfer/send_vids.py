@@ -27,7 +27,7 @@ def sync(local_folder, remote_folder, config):
     nas_ip = config.get('ip')
     nas_password = config.get('pass')
     nas_port = config.get('port')
-    
+
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -47,7 +47,7 @@ def sync(local_folder, remote_folder, config):
         print("Trying to send data via rsync")
         rsync_command = f"rsync -avz -e 'ssh -p {nas_port}' {local_folder}/ {nas_user}@{nas_ip}:{remote_folder}"
         os.system(rsync_command)
-        
+
         client.close()
     except paramiko.SSHException as ssh_err:
         print(f"An SSH error occurred: {ssh_err}")
@@ -63,7 +63,8 @@ if __name__ =="__main__":
     parser.add_argument("--project_id", required=True, help="Project ID for constructing project path to send videos to. This will construct a project in the form of MLA/project_id. Do not end this with a '/'", default=None)
     parser.add_argument("--config_path", required=True, help="Path to credentials to establish sftp connection to server/remote computer where data will be sent to.", default=None)
     args = parser.parse_args()
-    if args.base_folder is not None:
+    
+    if args.local_folder is not None:
         local_folder = args.local_folder
         local_folder = os.path.join(local_folder, args.animal_id)
         print(f"Using User-Provided path: {local_folder}")
