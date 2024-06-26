@@ -104,12 +104,18 @@ class VideoSelector:
     def release(self):
         self.cap.release()
 
+    def get_shape(self):
+        ret, frame = self.cap.read()
+        if ret:
+            return frame.shape
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Video ROI Selector")
     parser.add_argument('--video_path', help="Path to the video file")
     args = parser.parse_args()
 
     selector = VideoSelector(args.video_path)
+    print(selector.get_shape())
     selector.select_areas()
 
     light_cage_coords, dark_cage_coords = selector.get_coords()
