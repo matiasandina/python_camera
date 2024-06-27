@@ -37,7 +37,9 @@ def get_cropping_coords(filepath):
     selector.select_areas()
     # light_cage_coords, dark_cage_coords = selector.get_coords()
     selector.release()
-    return selector.regions
+    regions = selector.regions
+    regions['frame_shape'] = selector.get_shape()
+    return regions
 
 def get_session_metadata(animal_dir, exp_dates):
     files = os.listdir(animal_dir)
@@ -108,9 +110,20 @@ if __name__ == "__main__":
     exp_dates =  {"fasted": ["20240620", "20240621"], "baseline": ["20240617", "20240618"]}
     #convert dates to datetime
     exp_dates_dt = {k: [datetime.strptime(val, "%Y%m%d") for val in v] for k, v in exp_dates.items()}
-
-    # val_dict = populate_dictionary(animal_dir, "MLA163", exp_dates_dt)
-    # write_parquet(animal_dir, val_dict)
-
-    md_dict = read_metadata("processing/animal_dir/MLA163_metadata.parquet")
-    print(md_dict)
+    animal_list = []
+    for animal_id in animal_list:
+        metadata = populate_dictionary(animal_dir, animal_id, exp_dates_dt)
+        write_parquet(animal_dir, metadata)
+        y_px_tolerance = 10
+        # get the coords here light_cage_coords + dark_cage_coords
+        # Calculate encompassing Y-boundaries with a tolerance of 10 pixels
+        min_y = min(coord[1] for coord in light_cage_coords + dark_cage_coords) - y_px_tolerance
+        max_y = max(coord[1] for coord in light_cage_coords + dark_cage_coords) + y_px_tolerance
+        range_y = max_y - min_y
+        # this is data we already have but to be consistent with naming 
+        min_x = 0 # this is hardcoded though
+        range_x = frame_shape[0]
+        # maybe some assertions here to know we are not trying to get out of the frame
+        # but maybe also some overengineering 
+        for input_video_path in :
+            cmd_commad = f"ffmpeg -i {input_video_path} -vf 'crop={range_x}:{range_y}:{min_x}:{min_y}' -c:v libx264 -crf 23 -c:a copy {output_video_path}"
