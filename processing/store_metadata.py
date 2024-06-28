@@ -133,8 +133,7 @@ def read_metadata(parquet_path):
 
 if __name__ == "__main__":
 
-    # video_dir = "processing/animal_dir"
-    animal_dir = "processing/animal_dir"
+    video_dir = "VideoTracking/videos/downsized"
     exp_dates =  {"fasted": ["20240620", "20240621"], "baseline": ["20240617", "20240618"]}
     #convert dates to datetime
     exp_dates_dt = {k: [datetime.strptime(val, "%Y%m%d") for val in v] for k, v in exp_dates.items()}
@@ -142,7 +141,7 @@ if __name__ == "__main__":
 
 
     for animal_id in animal_list:
-        # animal_dir = os.path.join(video_dir, animal_id)
+        animal_dir = os.path.join(video_dir, animal_id)
 
         coords_by_session = crop_coords_by_session(exp_dates_dt, animal_dir)
         metadata = populate_dictionary(animal_dir, animal_id, exp_dates_dt, coords_by_session = coords_by_session)
