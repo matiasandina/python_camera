@@ -9,12 +9,12 @@ import subprocess
 def dict_skeleton():
     return {"animal_id": [], "exp_dates": [{}], 'dob': [], 'sex':[], 'mac':[], 'FED':[], 'session_metadata':[{}]}
 
-def get_session(video_path, type = "str"):
+def get_session(video_path, type = "str", format = "%Y%m%d%H%M%S"):
     pattern = r"ses-([a-zA-Z0-9]+)_"
     match = re.search(pattern, video_path)
     if match:
         timestamp_str = match.group(1)
-        timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
+        timestamp_dt = datetime.strptime(timestamp_str, format=format)
         # Create a new datetime object
         timestamp_dt = datetime(timestamp_dt.year, timestamp_dt.month, timestamp_dt.day)
 
