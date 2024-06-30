@@ -115,8 +115,8 @@ class ExperimentMetadataApp:
     def create_button(self, text, command):
         btn = tk.Button(self.master, text=text, command=command, bg='#E0E0E0', fg='black',
                         padx=10, pady=5, relief='flat', borderwidth=0)
-        btn.bind("<Enter>", lambda e, b=btn: on_enter(e, b))
-        btn.bind("<Leave>", lambda e, b=btn: on_leave(e, b))
+        btn.bind("<Enter>", lambda e, b=btn: self.on_enter(e, b))
+        btn.bind("<Leave>", lambda e, b=btn: self.on_leave(e, b))
         return btn
    
     def setup_ui(self):
@@ -157,7 +157,7 @@ class ExperimentMetadataApp:
         self.session_name_entry.pack(side='left', padx=10, pady=10)
 
         add_button = self.create_button("Add/Edit Session", self.add_or_edit_session)
-        add_button.pack(side='left', padx=10, pady=10)
+        add_button.grid(row=5, column=2, padx=10, pady=10)
 
         # Submit Button
         self.submit_button = self.create_button("Submit", self.submit_form)
