@@ -9,12 +9,12 @@ import subprocess
 def dict_skeleton():
     return {"animal_id": [], "exp_dates": [{}], 'dob': [], 'sex':[], 'mac':[], 'FED':[], 'session_metadata':[{}]}
 
-def get_session(video_path, type = "str", format = "%Y%m%d%H%M%S"):
+def get_session(video_path, type = "str"):
     pattern = r"ses-([a-zA-Z0-9]+)_"
     match = re.search(pattern, video_path)
     if match:
         timestamp_str = match.group(1)
-        timestamp_dt = datetime.strptime(timestamp_str, format=format)
+        timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
         # Create a new datetime object
         timestamp_dt = datetime(timestamp_dt.year, timestamp_dt.month, timestamp_dt.day)
 
@@ -134,6 +134,7 @@ def read_metadata(parquet_path):
 if __name__ == "__main__":
 
     video_dir = "VideoTracking/videos/downsized"
+    
     exp_dates =  {"fasted": ["20240620", "20240621"], "baseline": ["20240617", "20240618"]}
     #convert dates to datetime
     exp_dates_dt = {k: [datetime.strptime(val, "%Y%m%d") for val in v] for k, v in exp_dates.items()}
