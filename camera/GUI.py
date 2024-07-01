@@ -1,11 +1,14 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import datetime
 from tkcalendar import DateEntry
 from tkinter import messagebox, font
 from rich import print
 import subprocess
 import sys
+import pandas as pd
+from pathlib import Path
+
 
 class ExperimentMetadataApp:
     def __init__(self, master):
@@ -86,7 +89,6 @@ class ExperimentMetadataApp:
         self.session_name_label.grid(row=6, column=0, **row_options)
         self.session_name_entry = tk.Entry(self.session_frame)
         self.session_name_entry.grid(row=6, column=1, padx=10, pady=10)
-        
 
         # Placeholder where dynamic session widgets will be placed
         self.dynamic_session_frame = tk.Frame(self.session_frame)
@@ -95,11 +97,13 @@ class ExperimentMetadataApp:
         # Submit Button
         self.add_button = self.create_button("Add/Edit Session", self.add_or_edit_session)
         self.add_button.grid(row=6, column=0, padx=10, pady=10)
+        # Load button
+        self.load_button = self.create_button("Load Metadata", command=self.load_metadata)
+        self.load_button.grid(row=6, column=1, columnspan=1, pady=20)
         self.submit_button = self.create_button("Save Metadata", self.submit_form)
-        self.submit_button.grid(row=6, column=1, columnspan=1, pady=20)
+        self.submit_button.grid(row=6, column=2, columnspan=1, pady=20)
         self.trigger_main_button = self.create_button(text="✔ Record", command=self.trigger_main_py)
-        self.trigger_main_button.grid(row=6, column=2, columnspan=1, pady=20)
-
+        self.trigger_main_button.grid(row=7, column=1, columnspan=1, pady=20)
 
     def trigger_main_py(self):
         if self.metadata is not None:
@@ -187,7 +191,7 @@ class ExperimentMetadataApp:
             start_datetime = self.combine_date_time(start_cal.get_date(), start_time.get())
             stop_datetime = self.combine_date_time(stop_cal.get_date(), stop_time.get())
             self.sessions[session_name] = (start_datetime, stop_datetime)
-            print("Session {session_name} was saved successfully. Showing all sessions below")
+            print(f"Session {session_name} was saved successfully. Showing all sessions below")
             print(self.sessions)
             frame.config(bg='lightgreen')  # Set to light green on successful save
         except ValueError as e:
@@ -204,7 +208,7 @@ class ExperimentMetadataApp:
         return datetime.datetime.combine(date, time)
 
 
-    def populate_dictionary(self, animal_dir, animal_id, exp_dates, dob = [], sex = [], mac = [], fed = [], session_metadata = {}, coords_by_session = None):
+    def populate_dictionary(self, animal_dir, animal_id, exp_dates, dob = [], sex = [], mac = [], fed = [], session_metadata = {}):
         d = {}
         d["animal_id"] = animal_id
         #must be datetime object
@@ -213,7 +217,9 @@ class ExperimentMetadataApp:
         d["sex"] = sex
         d["mac"] = mac
         d["fed"] = fed
-        #d['session_metadata'] = session_metadata
+        if session_metadata == {}:
+            session_metadata['info'] = "Dictionary containing cropping coordinates for each video file on each session."
+        d['session_metadata'] = session_metadata
         return d
 
 
@@ -243,13 +249,98 @@ class ExperimentMetadataApp:
         mac = self.get_mac()
         fed = self.fed_entry.get()
         # things are passed as a list to match requirements from rest of the code
-        self.metadata = self.populate_dictionary(animal_dir = "", animal_id=[animal_id], exp_dates=self.sessions, dob=[dob], sex = [sex], mac=[mac], fed=[fed])
-
+        self.metadata = self.populate_dictionary(animal_dir = "", animal_id=animal_id, exp_dates=self.sessions, dob=dob, sex = sex, mac=mac, fed=[fed])
+        print(self.metadata) 
+        self.dict_to_parquet()
         messagebox.showinfo("Metadata Saved", "Metadata was successfully save to file")
-        print(self.metadata)
+
+
+    def flatten_dict(self, data):
+        flattened_data = {
+            'animal_id': data['animal_id'],
+            'exp_dates': data['exp_dates'],
+            'dob': data['dob'],
+            'sex': data['sex'],
+            'mac': data['mac'],
+            'fed': data['fed'],
+            'session_metadata': data['session_metadata']
+        }
+        return flattened_data
+
+    # Loading of metadata
+    def dict_to_parquet(self):
+        # Open a file dialog to select the parquet file
+        file_path = filedialog.asksaveasfilename(
+            title="Create a Parquet file",
+            filetypes=[("Parquet files", "*.parquet")]
+        )
         
-        # Placeholder to call a script if needed
-        # os.system(f"python main.py --arg {animal_id} --another-arg {dob}")
+        if file_path:  # Proceed only if a file was selected
+            flattened_data = self.flatten_dict(self.metadata)
+            df = pd.DataFrame([flattened_data])
+            df.to_parquet(file_path)
+            print("[green]success! [/green]")
+
+    def load_metadata(self):
+        # Open a file dialog to select the parquet file
+        file_path = filedialog.askopenfilename(
+            title="Select a Parquet file",
+            filetypes=[("Parquet files", "*.parquet")]
+        )
+        
+        if file_path:  # Proceed only if a file was selected
+            metadata = self.read_metadata(file_path)
+            print(metadata)  # Display metadata or update the GUI accordingly
+            # TODO: populate GUI fields
+
+    def read_metadata(self, parquet_path):
+        df = pd.read_parquet(parquet_path)
+        # TODO: this will get you the first row only.
+        # We shouldn't have more than one, but it's not asserted
+        return df.loc[0, :].to_dict()
+
+    def check_in_range(self, target_dt):
+        exp_dates = self.metadata["exp_dates"]
+        for session_type, span in exp_dates.items(): 
+            # we assume exclusive session types (target_date only belongs to one)
+            if min(span) <= target_dt <= max(span):
+                # then it actually belongs to session_type
+                return session_type
+
+    def find_mp4_videos(directory):
+        """
+        Recursively finds all .mp4 video files within the given directory.
+        :param directory: The directory path as a string or Path object where to start the search.
+        :return: A list of Paths to the .mp4 files.
+        """
+        # Convert directory to a Path object if it's not already one
+        path = Path(directory)
+        # Use the rglob method to find all .mp4 files recursively
+        mp4_files = list(path.rglob('*.mp4'))
+        return mp4_files
+
+    def collect_session_metadata(self):
+        # TODO: list video paths
+        animal_dir = filedialog.askdirectory()
+        if animal_dir:
+            video_path_list = self.find_mp4_videos(animal_dir)
+        else: 
+             messagebox.showinfo("Select Directory", "A directory needs to be selected to be able to find videos")
+             return
+
+        # trigger matching
+        for video_path in video_path_list:
+            session_id = self.get_session(video_path, type = "str")
+            session_dt = self.get_session(video_path, type = "dt")
+            session_type = self.check_in_range(self.metadata, session_dt)
+            # create session metadata dictionary
+            self.metadata['session_metadata'][session_id] = {
+                'filepath': video_path,
+                'session_type': session_type,
+                'coords': {}
+            }
+
+        # TODO: 
 
 if __name__ == "__main__":
     root = tk.Tk()
