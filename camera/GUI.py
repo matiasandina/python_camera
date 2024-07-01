@@ -166,7 +166,7 @@ class ExperimentMetadataApp:
         fed = self.fed_entry.get()
 
         exp_dates_list = []
-        for session_name, (start_cal, stop_cal) in sessions.items():
+        for session_name, (start_cal, stop_cal) in self.sessions.items():
             if start_cal.get_date() and stop_cal.get_date():
                 start_datetime = datetime.datetime.combine(start_cal.get_date(), datetime.datetime.min.time())
                 stop_datetime = datetime.datetime.combine(stop_cal.get_date(), datetime.datetime.min.time())
