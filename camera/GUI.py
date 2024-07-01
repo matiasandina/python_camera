@@ -3,7 +3,9 @@ from tkinter import messagebox
 import datetime
 from tkcalendar import DateEntry
 from tkinter import messagebox, font
-
+from rich import print
+import subprocess
+import sys
 
 class ExperimentMetadataApp:
     def __init__(self, master):
@@ -27,7 +29,6 @@ class ExperimentMetadataApp:
         default_font.configure(size=12, family="Helvetica")
         self.master.option_add("*Font", default_font)
         self.master.configure(bg="#FFFFFF")  # white background
-
         self.button_style = {'activebackground': '#CDDC39', 'bg': '#E0E0E0', 'bd': 0, 'fg': '#212121', 'padx': 10, 'pady': 5, 'relief': 'flat'}
         self.entry_style = {'relief': 'flat', 'bd': 1, 'insertbackground': '#212121'}
 
@@ -47,6 +48,7 @@ class ExperimentMetadataApp:
         return btn
    
     def setup_ui(self):
+        self.main_background = "#FFFFFF"
         row_options = {'padx': 20, 'pady': 10}
         # Animal ID
         tk.Label(self.master, text="Animal ID:", bg="#FFFFFF").grid(row=0, column=0, **row_options)
@@ -93,10 +95,47 @@ class ExperimentMetadataApp:
         # Submit Button
         self.add_button = self.create_button("Add/Edit Session", self.add_or_edit_session)
         self.add_button.grid(row=6, column=0, padx=10, pady=10)
-        self.submit_button = self.create_button("Submit", self.submit_form)
+        self.submit_button = self.create_button("Save Metadata", self.submit_form)
         self.submit_button.grid(row=6, column=1, columnspan=1, pady=20)
+        self.trigger_main_button = self.create_button(text="✔ Record", command=self.trigger_main_py)
+        self.trigger_main_button.grid(row=6, column=2, columnspan=1, pady=20)
 
 
+    def trigger_main_py(self):
+        if self.metadata is not None:
+            record_name = self.metadata['animal_id'][0]
+            try:
+                # Prepare command with arguments
+                args_dict = {
+                    #"--device_name": cameraDeviceName,
+                    #"--resolution": resolution,
+                    "--fps": str(15),
+                    #"--flip": flip,
+                    #"--use_pi_camera": usePiCamera,
+                    #"--record_duration": record_duration,
+                    "--record_name": record_name
+                }
+
+                # Construct command list and filter out empty arguments
+                cmd = [sys.executable, "main.py"]
+                for key, value in args_dict.items():
+                    if value not in [None, "", False]:
+                        cmd.append(key)
+                        if value is not True:  # For boolean flags, don't add the value part
+                            cmd.append(str(value))
+
+                # Print formatted command arguments
+                print("Launching 'main.py' with the following arguments:")
+                for key, value in args_dict.items():
+                    print(f"  {key}: {value}")
+
+                # Launch main.py with collected parameters
+                subprocess.run(cmd)
+
+            except subprocess.CalledProcessError as e:
+                print(f"An error occurred while executing main.py: {e}")
+        else:
+            print("Animal ID is missing or not specified.")
 
     def get_mac(self, interface='wlan0'):
         try:
@@ -105,24 +144,65 @@ class ExperimentMetadataApp:
             return "00:00:00:00:00:00"
 
     def add_or_edit_session(self):
-        session_name = self.session_name_entry.get()
+        session_name = self.session_name_entry.get().strip()
         if not session_name:
             messagebox.showerror("Invalid Input", "Session name cannot be empty.")
             return
+        if session_name in self.sessions:
+            messagebox.showerror("Duplicate Session", "This session name already exists.")
+            return
+        self.create_session_ui(session_name)
 
-        # Creating a frame for each session dynamically
-        frame = tk.Frame(self.dynamic_session_frame)
+    def create_session_ui(self, session_name):
+        frame = tk.Frame(self.dynamic_session_frame, bg=self.main_background) 
         frame.pack(fill='x', expand=True, pady=5)
         
-        tk.Label(frame, text=session_name).pack(side='left', padx=10)
+        tk.Label(frame, text=session_name, bg=self.main_background).pack(side='left', padx=10)
         
-        start_cal = DateEntry(frame, width=12, background='black', foreground='white', borderwidth=2)
-        start_cal.pack(side='left', padx=5)
-        stop_cal = DateEntry(frame, width=12, background='black', foreground='white', borderwidth=2)
-        stop_cal.pack(side='left', padx=5)
+        start_cal = DateEntry(frame, width=8, background='black', foreground='white', borderwidth=2,
+                              normalbackground='#FFFFFF', normalforeground='black', 
+                              headerbackground='lightgrey', selectbackground='lightblue', selectforeground='black')
+        start_cal.pack(side='left', padx=8)
+        start_time = tk.Entry(frame, width=10)
+        start_time.pack(side='left', padx=2)
+        start_time.insert(0, "HH:MM:SS")
         
-        self.sessions[session_name] = (start_cal, stop_cal)
+        stop_cal = DateEntry(frame, width=8, background='black', foreground='white', borderwidth=2,                               
+                             normalbackground='#FFFFFF', normalforeground='black', 
+                             headerbackground='lightgrey', selectbackground='lightblue', selectforeground='black')
+        stop_cal.pack(side='left', padx=8)
+        stop_time = tk.Entry(frame, width=10, background=self.main_background)
+        stop_time.pack(side='left', padx=2)
+        stop_time.insert(0, "HH:MM:SS")
+        
+        # Button to finalize session
+        save_button = tk.Button(frame, text="Confirm", 
+                                command=lambda: self.save_session(session_name, frame, start_cal, start_time, stop_cal, stop_time))
+        save_button.pack(side='left', padx=10)
         self.session_name_entry.delete(0, 'end')
+
+    def save_session(self, session_name, frame, start_cal, start_time, stop_cal, stop_time):
+        try:
+            print(f"Collecting info for session {session_name}")
+            start_datetime = self.combine_date_time(start_cal.get_date(), start_time.get())
+            stop_datetime = self.combine_date_time(stop_cal.get_date(), stop_time.get())
+            self.sessions[session_name] = (start_datetime, stop_datetime)
+            print("Session {session_name} was saved successfully. Showing all sessions below")
+            print(self.sessions)
+            frame.config(bg='lightgreen')  # Set to light green on successful save
+        except ValueError as e:
+            messagebox.showerror("Invalid Time", str(e))
+            frame.config(bg='lightcoral')  # Set to light red on error
+
+
+    def combine_date_time(self, date, time_str):
+        try:
+            time_parts = [int(part) for part in time_str.split(':')]
+            time = datetime.time(*time_parts)
+        except ValueError:
+            raise ValueError("Time must be in HH:MM:SS format and valid.")
+        return datetime.datetime.combine(date, time)
+
 
     def populate_dictionary(self, animal_dir, animal_id, exp_dates, dob = [], sex = [], mac = [], fed = [], session_metadata = {}, coords_by_session = None):
         d = {}
@@ -133,8 +213,6 @@ class ExperimentMetadataApp:
         d["sex"] = sex
         d["mac"] = mac
         d["fed"] = fed
-        #if session_metadata == {}:
-            #session_metadata = get_session_metadata(animal_dir, exp_dates, coords_by_session)
         #d['session_metadata'] = session_metadata
         return d
 
@@ -164,23 +242,14 @@ class ExperimentMetadataApp:
         sex = self.sex_var.get()
         mac = self.get_mac()
         fed = self.fed_entry.get()
+        # things are passed as a list to match requirements from rest of the code
+        self.metadata = self.populate_dictionary(animal_dir = "", animal_id=[animal_id], exp_dates=self.sessions, dob=[dob], sex = [sex], mac=[mac], fed=[fed])
 
-        exp_dates_list = []
-        for session_name, (start_cal, stop_cal) in self.sessions.items():
-            if start_cal.get_date() and stop_cal.get_date():
-                start_datetime = datetime.datetime.combine(start_cal.get_date(), datetime.datetime.min.time())
-                stop_datetime = datetime.datetime.combine(stop_cal.get_date(), datetime.datetime.min.time())
-                exp_dates_list.append({session_name: [start_datetime, stop_datetime]})
-    
-        metadata = self.populate_dictionary(animal_dir = "", animal_id=animal_id, exp_dates=exp_dates_list, dob=[dob], sex = [sex], mac=[mac], fed=[fed])
-
-        messagebox.showinfo("Form Submitted", "Metadata submitted successfully.")
-        print(metadata)
+        messagebox.showinfo("Metadata Saved", "Metadata was successfully save to file")
+        print(self.metadata)
         
         # Placeholder to call a script if needed
         # os.system(f"python main.py --arg {animal_id} --another-arg {dob}")
-        print(metadata)
-        messagebox.showinfo("Form Submitted", "Metadata submitted successfully.")
 
 if __name__ == "__main__":
     root = tk.Tk()
