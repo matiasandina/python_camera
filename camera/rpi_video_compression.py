@@ -16,7 +16,7 @@ def compress_videos(animal_id, crf, base_folder, out_folder):
     for file in sorted(os.listdir(base_folder)):
         match = pattern.match(file)
         if match:
-            session_id = match.group(1).replace('-', '').replace('T', '')
+            session_id = match.group(1).replace('-', '')#.replace('T', '')
             session_folder = os.path.join(out_folder, session_id, 'beh')
             print(f"Checking for the existence of session folder: {session_folder}")
             if not os.path.exists(session_folder):
