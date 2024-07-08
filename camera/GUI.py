@@ -388,8 +388,14 @@ class ExperimentMetadataApp:
         This function is expecting to find patterns ^%Y%-m%-dT%H-%M-%S_{animal_id}.extension
         '''
         if isinstance(file_path, Path):
+            # this will be the file name with extension (no folders)
+            file_path = file_path.name
             file_path = str(file_path)
-        
+        else:
+            assert os.path.isfile(file_path), f"{file_path} is not a file"
+            # now get the name of the file with extension
+            file_path = os.path.basename(str(file_path))
+
         pattern = r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})"
         match = re.search(pattern, file_path)
         if match:
