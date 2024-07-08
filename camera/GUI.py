@@ -383,7 +383,7 @@ class ExperimentMetadataApp:
         else:
             raise ValueError(f"Cannot find pattern in {video_path}")
 
-    def get_session(self, file_path, type = "str", format="%Y%m%dTH%M%S"):
+    def get_session(self, file_path, type = "str", format="%Y%m%dT%H%M%S"):
         '''
         This function is expecting to find patterns ^%Y-%m-%dT%H-%M-%S_{animal_id}.extension
         '''
