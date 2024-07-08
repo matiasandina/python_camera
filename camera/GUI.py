@@ -383,30 +383,34 @@ class ExperimentMetadataApp:
         else:
             raise ValueError(f"Cannot find pattern in {video_path}")
 
-    def get_session(self, file_path, type = "str", format="%Y%m%dT%H%M%S"):
+    def get_session(file_path, type="str", format_in = "%Y-%m-%dT%H-%M-%S", format_out="%Y%m%dT%H%M%S"):
         '''
-        This function is expecting to find patterns ^%Y-%m-%dT%H-%M-%S_{animal_id}.extension
+        Extracts datetime from the file name based on a specific format and converts it as specified.
+        Assumes file names start with datetime pattern like "YYYY-MM-DDTHH-MM-SS_{animal_id}.extension".
+        Format will coerce the datetime to a specific format example "%Y%m%dT%H%M%S".
         '''
         if isinstance(file_path, Path):
-            # this will be the file name with extension (no folders)
-            file_path = file_path.name
-            file_path = str(file_path)
+            file_path = file_path.name  # Directly get the file name with extension
         else:
-            assert os.path.isfile(file_path), f"{file_path} is not a file"
-            # now get the name of the file with extension
-            file_path = os.path.basename(str(file_path))
-
+            file_path = os.path.basename(str(file_path))  # Ensure we're working with the file name only
+        
+        # Regex pattern to match the datetime at the start of the file name
         pattern = r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})"
         match = re.search(pattern, file_path)
-        timestamp_str = match.group(1)
-        if match:
-            if type == "str":
-                return timestamp_str
-            if type == "dt":
-                timestamp_dt = datetime.datetime.strptime(timestamp_str, format)
-                return timestamp_dt
-        else:
+        
+        if not match:
             raise ValueError(f"Cannot find pattern {pattern} in {file_path}")
+
+        timestamp_str = match.group(1)
+        
+        # Convert the timestamp based on the desired return type
+        if type == "str":
+            # Reformat the datetime string according to the specified format
+            timestamp_dt = datetime.datetime.strptime(timestamp_str, format_in)
+            return timestamp_dt.strftime(format_out)
+        elif type == "dt":
+            # Convert the string to a datetime object
+            return datetime.datetime.strptime(timestamp_str, format_in)
 
 
     def find_mp4_videos(self, directory):
@@ -436,8 +440,10 @@ class ExperimentMetadataApp:
         data = []
         # trigger matching
         for video_path in video_path_list:
-            session_id = self.get_session(video_path, type = "str")
-            session_dt = self.get_session(video_path, type = "dt")
+            # files from camera get generated as %Y-%m-%dT%H-%M-%S
+            # we will coerce to %Y%m%dT%H%M%S
+            session_id = self.get_session(video_path, type = "str", format_in = "%Y-%m-%dT%H-%M-%S")
+            session_dt = self.get_session(video_path, type = "dt", format_in = "%Y-%m-%dT%H-%M-%S")
             session_type = self.check_in_range(session_dt)
             # create session metadata dictionary
             self.metadata['session_metadata'][session_id] = {
