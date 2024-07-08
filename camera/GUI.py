@@ -364,8 +364,7 @@ class ExperimentMetadataApp:
                 # then it actually belongs to session_type
                 return session_type
 
-    # TODO: We have to deal with the T on the files
-    def get_session(self, video_path, type = "str"):
+    def get_bids_session(self, video_path, type = "str"):
         if isinstance(video_path, Path):
             video_path = str(video_path)
 
@@ -382,7 +381,26 @@ class ExperimentMetadataApp:
                 timestamp_dt
                 return timestamp_dt
         else:
-            raise ValueError()
+            raise ValueError(f"Cannot find pattern in {video_path}")
+
+    def get_session(self, file_path, type = "str", format="%Y%m%d%TH%M%S"):
+        '''
+        This function is expecting to find patterns ^%Y%-m%-dT%H-%M-%S_{animal_id}.extension
+        '''
+        if isinstance(file_path, Path):
+            file_path = str(file_path)
+        
+        pattern = r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})"
+        match = re.search(pattern, file_path)
+        if match:
+            if type == "str":
+                timestamp_str = match.group(1)
+                return timestamp_str
+            if type == "dt":
+                timestamp_dt = datetime.datetime.strptime(timestamp_str, format)
+                return timestamp_dt
+        else:
+            raise ValueError(f"Cannot find pattern {pattern} in {file_path}")
 
 
     def find_mp4_videos(self, directory):
