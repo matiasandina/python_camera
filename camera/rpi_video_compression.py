@@ -28,13 +28,19 @@ def get_session(file_path, type = "str", format="%Y%m%d%TH%M%S"):
     This function is expecting to find patterns ^%Y%-m%-dT%H-%M-%S_{animal_id}.extension
     '''
     if isinstance(file_path, Path):
+        # this will be the file name with extension (no folders)
+        file_path = file_path.name
         file_path = str(file_path)
-    
+    else:
+        assert os.path.isfile(file_path), f"{file_path} is not a file"
+        # now get the name of the file with extension
+        file_path = os.path.basename(str(file_path))
+
     pattern = r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})"
     match = re.search(pattern, file_path)
+    timestamp_str = match.group(1)
     if match:
         if type == "str":
-            timestamp_str = match.group(1)
             return timestamp_str
         if type == "dt":
             timestamp_dt = datetime.datetime.strptime(timestamp_str, format)

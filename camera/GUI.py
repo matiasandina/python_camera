@@ -398,9 +398,9 @@ class ExperimentMetadataApp:
 
         pattern = r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})"
         match = re.search(pattern, file_path)
+        timestamp_str = match.group(1)
         if match:
             if type == "str":
-                timestamp_str = match.group(1)
                 return timestamp_str
             if type == "dt":
                 timestamp_dt = datetime.datetime.strptime(timestamp_str, format)
