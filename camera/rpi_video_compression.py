@@ -5,7 +5,6 @@ import shutil
 import re
 import pandas as pd
 from pathlib import Path
-import datetime
 
 def get_session(file_path, type = "str", format="%Y%m%d%TH%M%S"):
     if isinstance(file_path, Path):
@@ -14,14 +13,11 @@ def get_session(file_path, type = "str", format="%Y%m%d%TH%M%S"):
     pattern = r"ses-([a-zA-Z0-9]+)_"
     match = re.search(pattern, file_path)
     if match:
-        timestamp_str = match.group(1)
-        timestamp_dt = datetime.datetime.strptime(timestamp_str, format)
-        # Create a new datetime object
-        #timestamp_dt = datetime.datetime(timestamp_dt.year, timestamp_dt.month, timestamp_dt.day)
         if type == "str":
+            timestamp_str = match.group(1)
             return timestamp_str
         if type == "dt":
-            timestamp_dt
+            timestamp_dt = datetime.datetime.strptime(timestamp_str, format)
             return timestamp_dt
     else:
         raise ValueError()
@@ -47,6 +43,7 @@ def find_metadata_file(animal_id, directory):
     return metadata_files[0]
 
 
+
 def read_metadata(parquet_path):
     df = pd.read_parquet(parquet_path)
     # TODO: this will get you the first row only.
@@ -55,10 +52,8 @@ def read_metadata(parquet_path):
 
 
 
-def get_croping_coords(metadata_path):
-    metadata = read_metadata(parquet_path=metadata_path)
-    name = get_session(file, type = "str")
-    coords = metadata["session_metadata"][name]["coords"]
+def get_cropping_coords(metadata, session_id):
+    coords = metadata["session_metadata"][session_id]["coords"]
     light_cage_coords = coords["light_cage"]
     dark_cage_coords =coords["dark_cage"]
     # Sample coordinates
@@ -73,45 +68,40 @@ def get_croping_coords(metadata_path):
     min_x = 0 # this is hardcoded though
     range_x = coords["frame_shape"][0]
     # maybe some assertions here to know we are not trying to get out of the frame
-
     print(range_x, range_y, min_x, min_y)
+    return (range_x, range_y, min_x, min_y)
 
-def call_ffmpeg():
-    print(range_x, range_y, min_x, min_y)
-
-    input_video_path = os.path.join(animal_dir, file)
-
-    root, ext = os.path.splitext(file)
-        # but maybe also some overengineering
-    output_video_path = os.path.join(animal_dir,f"{root}_cropped.mp4")
-
-    cmd_command=command = [
+def call_ffmpeg(input_file, crop_coords, animal_dir, output_file):
+    # unpack cropping coords 
+    range_x, range_y, min_x, min_y = crop_coords
+    cmd_command = [
             "ffmpeg",
-            "-i", input_video_path,
+            "-i", input_file,
             "-vf", f"crop={range_x}:{range_y}:{min_x}:{min_y}",
             "-c:v", "libx264",
             "-crf", f"{crf}",
             "-c:a", "copy",
-            output_video_path]
-
+            output_file]
+    print("Calling ffmpeg with this command")
+    print(cmd_command)
     subprocess.run(cmd_command)
 
 
-def compress_videos(metadata, crf, base_folder, out_folder):
+def compress_videos(metadata, crf, base_folder, animal_dir):
     animal_id = metadata['animal_id']
     pattern = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})_.*" + re.escape(animal_id) + r".*")
-    print(f"Checking for the existence of output folder: {out_folder}")
-    if not os.path.exists(out_folder):
-        print(f"Output folder not found. It will be created: {out_folder}")
-        os.makedirs(out_folder)
+    print(f"Checking for the existence of output folder: {animal_dir}")
+    if not os.path.exists(animal_dir):
+        print(f"Output folder not found. It will be created: {animal_dir}")
+        os.makedirs(animal_dir)
     else:
         print("Output folder already exists")
 
     for file in sorted(os.listdir(base_folder)):
         match = pattern.match(file)
         if match:
-            session_id = match.group(1).replace('-', '')
-            session_folder = os.path.join(out_folder, session_id, 'beh')
+            session_id = get_session(file,)
+            session_folder = os.path.join(animal_dir, session_id, 'beh')
             print(f"Checking for the existence of session folder: {session_folder}")
             if not os.path.exists(session_folder):
                 print(f"Session folder not found. It will be created: {session_folder}")
@@ -123,23 +113,14 @@ def compress_videos(metadata, crf, base_folder, out_folder):
             
             if file_extension == '.mp4':
                 input_file = os.path.join(base_folder, file)
-                call_ffmpeg(metadata)
+                crop_coords = get_cropping_coords(metadata, session_id=session_id)
+                call_ffmpeg(input_file = input_file, crop_coords=crop_coords, animal_dir=animal_dir, output_file = output_file)
+
             elif file_extension == '.csv':
                 output_csv = os.path.join(session_folder, f'sub-{animal_id}_ses-{session_id}_timestamps{file_extension}')
-                print(f"CSV file will be copied from {odef read_metadata(parquet_path):
-    df = pd.read_parquet(parquet_path)
-    # TODO: this will get you the first row only.
-    # We shouldn't have more than one, but it's not asserted
-    return df.loc[0, :].to_dict()
-
-s.path.join(base_folder, file)} to {output_csv}")
+                print(f"CSV file will be copied from {os.path.join(base_folder, file)} to {output_csv}")
                 shutil.copy(os.path.join(base_folder, file), output_csv)
 
-"""
-from `{timestamp}_{animal_id}.mp4` to `/animal_id/session_id/beh/sub-{animal_id}_ses-{session_id}_video.mp4`
-from `{timestamp}_timestamp.csv` to `/animal_id/session_id/beh/sub-{animal_id}_ses-{session_id}_timestamps.csv
-beh short for behavior
-"""
 
 if __name__ == "__main__":
 
