@@ -13,16 +13,11 @@ def get_session(video_path, type = "str"):
     pattern = r"ses-([a-zA-Z0-9]+)_"
     match = re.search(pattern, video_path)
     if match:
-        timestamp_str = match.group(1)
-        timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
-        # Create a new datetime object
-        timestamp_dt = datetime(timestamp_dt.year, timestamp_dt.month, timestamp_dt.day)
-
-        timestamp_str = datetime.strftime(timestamp_dt, "%Y%m%d")
         if type == "str":
+            timestamp_str = match.group(1)
             return timestamp_str
         if type == "dt":
-            timestamp_dt
+            timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
             return timestamp_dt
     else:
         raise ValueError()
