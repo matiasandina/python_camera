@@ -383,7 +383,7 @@ class ExperimentMetadataApp:
         else:
             raise ValueError(f"Cannot find pattern in {video_path}")
 
-    def get_session(file_path, type="str", format_in = "%Y-%m-%dT%H-%M-%S", format_out="%Y%m%dT%H%M%S"):
+    def get_session(self, file_path, type="str", format_in = "%Y-%m-%dT%H-%M-%S", format_out="%Y%m%dT%H%M%S"):
         '''
         Extracts datetime from the file name based on a specific format and converts it as specified.
         Assumes file names start with datetime pattern like "YYYY-MM-DDTHH-MM-SS_{animal_id}.extension".
