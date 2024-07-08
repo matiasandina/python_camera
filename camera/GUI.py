@@ -8,7 +8,9 @@ import subprocess
 import sys
 import pandas as pd
 from pathlib import Path
-
+from video_selector import VideoSelector
+import re
+import os
 
 class ExperimentMetadataApp:
     def __init__(self, master):
@@ -22,7 +24,8 @@ class ExperimentMetadataApp:
         self.sessions = {}
         self.sex_var = tk.StringVar()
         self.metadata = None
-
+        # Set the base path using os.path, assuming your script's location is stable within the project structure
+        self.base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'python_camera', 'camera'))
         # Setup UI
         self.setup_ui()
     
@@ -104,6 +107,9 @@ class ExperimentMetadataApp:
         self.submit_button.grid(row=6, column=2, columnspan=1, pady=20)
         self.trigger_main_button = self.create_button(text="✔ Record", command=self.trigger_main_py)
         self.trigger_main_button.grid(row=7, column=1, columnspan=1, pady=20)
+        # Crop ROIs button
+        self.crop_roi_button = self.create_button("Crop ROIs", command=self.collect_session_metadata)
+        self.crop_roi_button.grid(row=9,column=1, columnspan=1, pady=50)
 
     def trigger_main_py(self):
         if self.metadata is not None:
@@ -156,8 +162,14 @@ class ExperimentMetadataApp:
             messagebox.showerror("Duplicate Session", "This session name already exists.")
             return
         self.create_session_ui(session_name)
+    
+    def load_sessions_from_metadata(self):
+        exp_dates = self.metadata.get('exp_dates', {})
+        for session_name, dates in exp_dates.items():
+            start, stop = dates[0], dates[1]
+            self.create_session_ui(session_name, start, stop)
 
-    def create_session_ui(self, session_name):
+    def create_session_ui(self, session_name, start=None, stop=None):
         frame = tk.Frame(self.dynamic_session_frame, bg=self.main_background) 
         frame.pack(fill='x', expand=True, pady=5)
         
@@ -169,7 +181,11 @@ class ExperimentMetadataApp:
         start_cal.pack(side='left', padx=8)
         start_time = tk.Entry(frame, width=10)
         start_time.pack(side='left', padx=2)
-        start_time.insert(0, "HH:MM:SS")
+        if start:
+            start_cal.set_date(start.date())
+            start_time.insert(0, start.strftime("%H:%M:%S"))
+        else:
+            start_time.insert(0, "HH:MM:SS")
         
         stop_cal = DateEntry(frame, width=8, background='black', foreground='white', borderwidth=2,                               
                              normalbackground='#FFFFFF', normalforeground='black', 
@@ -177,7 +193,12 @@ class ExperimentMetadataApp:
         stop_cal.pack(side='left', padx=8)
         stop_time = tk.Entry(frame, width=10, background=self.main_background)
         stop_time.pack(side='left', padx=2)
-        stop_time.insert(0, "HH:MM:SS")
+
+        if stop:
+            stop_cal.set_date(stop.date())
+            stop_time.insert(0, stop.strftime("%H:%M:%S"))
+        else:       
+            stop_time.insert(0, "HH:MM:SS")
         
         # Button to finalize session
         save_button = tk.Button(frame, text="Confirm", 
@@ -237,6 +258,18 @@ class ExperimentMetadataApp:
             errors.append("Fed details are required.")
         return errors
 
+    def populate_form(self):
+
+        self.animal_id_entry.delete(0, 'end')
+        self.animal_id_entry.insert(0, self.metadata['animal_id'])        
+        #self.animal_id_entry.set(self.metadata['animal_id'])
+        self.dob_cal.set_date(self.metadata['dob'])
+        self.sex_var.set(self.metadata['sex'])
+        # we are not going to check mac
+        self.fed_entry.delete(0, 'end')
+        self.fed_entry.insert(0, ', '.join(map(str, self.metadata['fed'].ravel())))
+        self.load_sessions_from_metadata()
+
     def submit_form(self):
         errors = self.validate_fields()
         if errors:
@@ -249,8 +282,14 @@ class ExperimentMetadataApp:
         mac = self.get_mac()
         fed = self.fed_entry.get()
         # things are passed as a list to match requirements from rest of the code
-        self.metadata = self.populate_dictionary(animal_dir = "", animal_id=animal_id, exp_dates=self.sessions, dob=dob, sex = sex, mac=mac, fed=[fed])
-        print(self.metadata) 
+        if self.metadata is None:
+            print("Creating new metadata!")
+            self.metadata = self.populate_dictionary(animal_dir = "", animal_id=animal_id, exp_dates=self.sessions, dob=dob, sex = sex, mac=mac, fed=[fed])
+            print(self.metadata) 
+        else: 
+            print("Saving existing metadata")
+            print(self.metadata) 
+
         self.dict_to_parquet()
         messagebox.showinfo("Metadata Saved", "Metadata was successfully save to file")
 
@@ -269,9 +308,20 @@ class ExperimentMetadataApp:
 
     # Loading of metadata
     def dict_to_parquet(self):
+        # TODO: manage /animal_id folder creation for user
+
+        ##get animal_id -> camera/MLA___?
+        out_folder = os.path.join(self.base_path, self.metadata["animal_id"])
+        
+        # Ensure the directory exists
+        if not os.path.exists(out_folder):
+            print(f"Output folder not found. It will be created: {out_folder}")
+            os.makedirs(out_folder, exist_ok=True)
         # Open a file dialog to select the parquet file
         file_path = filedialog.asksaveasfilename(
             title="Create a Parquet file",
+            initialdir=out_folder,
+            initialfile=f"sub-{self.metadata['animal_id']}_metadata.parquet",
             filetypes=[("Parquet files", "*.parquet")]
         )
         
@@ -279,6 +329,12 @@ class ExperimentMetadataApp:
             flattened_data = self.flatten_dict(self.metadata)
             df = pd.DataFrame([flattened_data])
             df.to_parquet(file_path)
+            # try:
+            #     # Assuming original_metadata_path is the path of the original file you want to delete
+            #     os.remove(self.original_metadata_path)
+            #     print("Original metadata file has been successfully removed.")
+            # except OSError as e:
+            #     print(f"Error: {e.strerror}. File {e.filename} could not be removed.")
             print("[green]success! [/green]")
 
     def load_metadata(self):
@@ -289,9 +345,10 @@ class ExperimentMetadataApp:
         )
         
         if file_path:  # Proceed only if a file was selected
-            metadata = self.read_metadata(file_path)
-            print(metadata)  # Display metadata or update the GUI accordingly
-            # TODO: populate GUI fields
+            self.metadata = self.read_metadata(file_path)
+            print(self.metadata)  # Display metadata 
+            # update the GUI accordingly
+            self.populate_form()
 
     def read_metadata(self, parquet_path):
         df = pd.read_parquet(parquet_path)
@@ -307,9 +364,30 @@ class ExperimentMetadataApp:
                 # then it actually belongs to session_type
                 return session_type
 
-    def find_mp4_videos(directory):
+    # TODO: We have to deal with the T on the files
+    def get_session(self, video_path, type = "str"):
+        if isinstance(video_path, Path):
+            video_path = str(video_path)
+
+        pattern = r"ses-([a-zA-Z0-9]+)_"
+        match = re.search(pattern, video_path)
+        if match:
+            timestamp_str = match.group(1)
+            timestamp_dt = datetime.datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
+            # Create a new datetime object
+            #timestamp_dt = datetime.datetime(timestamp_dt.year, timestamp_dt.month, timestamp_dt.day)
+            if type == "str":
+                return timestamp_str
+            if type == "dt":
+                timestamp_dt
+                return timestamp_dt
+        else:
+            raise ValueError()
+
+
+    def find_mp4_videos(self, directory):
         """
-        Recursively finds all .mp4 video files within the given directory.
+        Not recursive finds all .mp4 video files within the given directory.
         :param directory: The directory path as a string or Path object where to start the search.
         :return: A list of Paths to the .mp4 files.
         """
@@ -320,27 +398,68 @@ class ExperimentMetadataApp:
         return mp4_files
 
     def collect_session_metadata(self):
-        # TODO: list video paths
+        if self.metadata is None:
+            messagebox.showwarning("Metadata is missing", "Metadata has to be entered manually or loaded")
+            return
+
         animal_dir = filedialog.askdirectory()
         if animal_dir:
             video_path_list = self.find_mp4_videos(animal_dir)
         else: 
-             messagebox.showinfo("Select Directory", "A directory needs to be selected to be able to find videos")
-             return
-
+            messagebox.showinfo("Select Directory", "A directory needs to be selected to be able to find videos")
+            return
+        print("video paths", video_path_list)
+        data = []
         # trigger matching
         for video_path in video_path_list:
             session_id = self.get_session(video_path, type = "str")
             session_dt = self.get_session(video_path, type = "dt")
-            session_type = self.check_in_range(self.metadata, session_dt)
+            session_type = self.check_in_range(session_dt)
             # create session metadata dictionary
             self.metadata['session_metadata'][session_id] = {
-                'filepath': video_path,
+                'filepath': str(video_path), # parquet cannot store PosixPath()
                 'session_type': session_type,
                 'coords': {}
             }
 
-        # TODO: 
+            # this is easier for data aggregation
+            data.append({
+                'session_id': session_id,
+                'session_dt': session_dt,
+                'session_type': session_type,
+                'filepath': str(video_path) # coerce from path to str
+                })
+
+        df = pd.DataFrame(data)
+        # Group by 'session_type' and get the index of the minimum 'session_dt' for each group
+        idx = df.groupby('session_type')['session_dt'].idxmin()
+        # Use these indices to get the corresponding rows from the original DataFrame
+        min_sessions_df = df.loc[idx]
+        print(min_sessions_df)
+        regions = {}
+
+        for index, row in min_sessions_df.iterrows():
+            session_type = row['session_type']
+            video_path = row['filepath']
+            # get the coords for a particular session type
+            regions[session_type] = self.get_cropping_coords(video_path)
+            print(f"Adding coords for session_type = `{session_type}`")
+            print("Current session metadata:", self.metadata['session_metadata'])
+            for key in self.metadata['session_metadata'].keys():
+                print("metadata", self.metadata["session_metadata"][key])
+                if key != 'info' and self.metadata['session_metadata'][key]['session_type'] == session_type:
+                    self.metadata['session_metadata'][key]['coords'] = regions[session_type]
+        return
+
+    def get_cropping_coords(self, filepath):
+    
+        selector = VideoSelector(filepath)
+        selector.select_areas()
+        # light_cage_coords, dark_cage_coords = selector.get_coords()
+        regions = selector.regions
+        regions['frame_shape'] = selector.get_shape()
+        selector.release()
+        return regions
 
 if __name__ == "__main__":
     root = tk.Tk()
