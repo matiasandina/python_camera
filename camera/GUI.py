@@ -436,8 +436,8 @@ class ExperimentMetadataApp:
         data = []
         # trigger matching
         for video_path in video_path_list:
-            session_id = self.get_session(video_path, type = "str", format="%Y-%m-%dTH-%M-%S")
-            session_dt = self.get_session(video_path, type = "dt", format="%Y-%m-%dTH-%M-%S")
+            session_id = self.get_session(video_path, type = "str")
+            session_dt = self.get_session(video_path, type = "dt")
             session_type = self.check_in_range(session_dt)
             # create session metadata dictionary
             self.metadata['session_metadata'][session_id] = {

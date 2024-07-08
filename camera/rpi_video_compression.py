@@ -23,7 +23,7 @@ def get_bids_session(file_path, type = "str", format="%Y%m%dTH%M%S"):
     else:
         raise ValueError(f"Cannot find pattern in {file_path}")
 
-def get_session(file_path, type = "str", format="%Y%m%dTH%M%S"):
+def get_session(file_path, type = "str", format="%Y%m%dT%H%M%S"):
     '''
     This function is expecting to find patterns ^%Y-%m-%dT%H-%M-%S_{animal_id}.extension
     '''
@@ -126,7 +126,7 @@ def compress_videos(metadata, crf, base_folder, animal_dir):
     for file in sorted(os.listdir(base_folder)):
         match = pattern.match(file)
         if match:
-            session_id = get_session(file, format="%Y-%m-%dT%H-%M-%S")
+            session_id = get_session(file)
             session_folder = os.path.join(animal_dir, session_id, 'beh')
             print(f"Checking for the existence of session folder: {session_folder}")
             if not os.path.exists(session_folder):
