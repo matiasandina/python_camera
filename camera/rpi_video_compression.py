@@ -3,20 +3,114 @@ import os
 import argparse
 import shutil
 import re
+import pandas as pd
+from pathlib import Path
+import datetime
 
-def compress_videos(animal_id, crf, base_folder, out_folder):
-    out_folder = os.path.join(base_folder, animal_id)
+def get_session(file_path, type = "str", format="%Y%m%d%TH%M%S"):
+    if isinstance(file_path, Path):
+        file_path = str(file_path)
+
+    pattern = r"ses-([a-zA-Z0-9]+)_"
+    match = re.search(pattern, file_path)
+    if match:
+        timestamp_str = match.group(1)
+        timestamp_dt = datetime.datetime.strptime(timestamp_str, format)
+        # Create a new datetime object
+        #timestamp_dt = datetime.datetime(timestamp_dt.year, timestamp_dt.month, timestamp_dt.day)
+        if type == "str":
+            return timestamp_str
+        if type == "dt":
+            timestamp_dt
+            return timestamp_dt
+    else:
+        raise ValueError()
+
+def find_metadata_file(animal_id, directory):
+    """
+    Not recursive finds metadata in directory.
+    :param directory: The directory path as a string or Path object where to start the search.
+    :return: A Path to the metadata file.
+    """
+    # Convert directory to a Path object if it's not already one
+    path = Path(directory)
+    # Use the rglob method to find all .mp4 files recursively
+    metadata_files = list(path.glob(f"sub-{animal_id}_metadata.parquet"))
+    if metadata_files == []:
+        print(directory)
+        raise ValueError("Could not find metadata file. Please make sure it's on path")
+    
+    if len(metadata_files) > 1:
+        print(f"Found these metadata files in {directory}")
+        print(metadata_files)
+        raise ValueError("Too many metadata files found. Check which one is correct")
+    return metadata_files[0]
+
+
+def read_metadata(parquet_path):
+    df = pd.read_parquet(parquet_path)
+    # TODO: this will get you the first row only.
+    # We shouldn't have more than one, but it's not asserted
+    return df.loc[0, :].to_dict()
+
+
+
+def get_croping_coords(metadata_path):
+    metadata = read_metadata(parquet_path=metadata_path)
+    name = get_session(file, type = "str")
+    coords = metadata["session_metadata"][name]["coords"]
+    light_cage_coords = coords["light_cage"]
+    dark_cage_coords =coords["dark_cage"]
+    # Sample coordinates
+    # light_cage_coords = [(110, 286), (200, 123), (463, 329)]
+    # dark_cage_coords = [(397, 80), (396, 325), (497, 329), (501, 83)]
+    y_px_tolerance = 10
+    # Calculate encompassing Y-boundaries with a tolerance of 10 pixels
+    min_y = min(coord[1] for coord in light_cage_coords + dark_cage_coords) - y_px_tolerance
+    max_y = max(coord[1] for coord in light_cage_coords + dark_cage_coords) + y_px_tolerance
+    range_y = max_y - min_y
+    # this is data we already have but to be consistent with naming
+    min_x = 0 # this is hardcoded though
+    range_x = coords["frame_shape"][0]
+    # maybe some assertions here to know we are not trying to get out of the frame
+
+    print(range_x, range_y, min_x, min_y)
+
+def call_ffmpeg():
+    print(range_x, range_y, min_x, min_y)
+
+    input_video_path = os.path.join(animal_dir, file)
+
+    root, ext = os.path.splitext(file)
+        # but maybe also some overengineering
+    output_video_path = os.path.join(animal_dir,f"{root}_cropped.mp4")
+
+    cmd_command=command = [
+            "ffmpeg",
+            "-i", input_video_path,
+            "-vf", f"crop={range_x}:{range_y}:{min_x}:{min_y}",
+            "-c:v", "libx264",
+            "-crf", f"{crf}",
+            "-c:a", "copy",
+            output_video_path]
+
+    subprocess.run(cmd_command)
+
+
+def compress_videos(metadata, crf, base_folder, out_folder):
+    animal_id = metadata['animal_id']
     pattern = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})_.*" + re.escape(animal_id) + r".*")
-
     print(f"Checking for the existence of output folder: {out_folder}")
     if not os.path.exists(out_folder):
         print(f"Output folder not found. It will be created: {out_folder}")
         os.makedirs(out_folder)
+    else:
+        print("Output folder already exists")
 
     for file in sorted(os.listdir(base_folder)):
         match = pattern.match(file)
         if match:
-            session_id = match.group(1).replace('-', '')#.replace('T', '')
+            session_id = match.group(1).replace('-', '')
             session_folder = os.path.join(out_folder, session_id, 'beh')
             print(f"Checking for the existence of session folder: {session_folder}")
             if not os.path.exists(session_folder):
@@ -29,14 +123,16 @@ def compress_videos(animal_id, crf, base_folder, out_folder):
             
             if file_extension == '.mp4':
                 input_file = os.path.join(base_folder, file)
-                cmd = f"ffmpeg -i {input_file} -c:v libx264 -crf {str(crf)} -c:a copy {output_file}"
-                print(f"Command to be run: {cmd}")
-                print(f"Output video file would be saved to: {output_file}")
-                subprocess.run(cmd, shell=True, check=True)
-
+                call_ffmpeg(metadata)
             elif file_extension == '.csv':
                 output_csv = os.path.join(session_folder, f'sub-{animal_id}_ses-{session_id}_timestamps{file_extension}')
-                print(f"CSV file will be copied from {os.path.join(base_folder, file)} to {output_csv}")
+                print(f"CSV file will be copied from {odef read_metadata(parquet_path):
+    df = pd.read_parquet(parquet_path)
+    # TODO: this will get you the first row only.
+    # We shouldn't have more than one, but it's not asserted
+    return df.loc[0, :].to_dict()
+
+s.path.join(base_folder, file)} to {output_csv}")
                 shutil.copy(os.path.join(base_folder, file), output_csv)
 
 """
@@ -55,14 +151,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.base_folder is not None:
         base_folder = args.base_folder
-        out_folder = os.path.join(base_folder, args.animal_id)
+        animal_dir = os.path.join(base_folder, args.animal_id)
         print(f"Using User-Provided path: {base_folder}")
     else:
         # go with hardcoded
         base_folder = "/home/pi/python_camera/camera/"
-        out_folder = os.path.join(base_folder, args.animal_id)
+        animal_dir = os.path.join(base_folder, args.animal_id)
         print(f"Using Hard-Coded path: {base_folder}")
 
-    crf = args.crf
+    # arg parsing
     animal_id = args.animal_id
-    compress_videos(animal_id, crf, base_folder, out_folder)
+    crf = args.crf
+
+    print(f"Finding metadata on {animal_dir}")
+    metadata_file = find_metadata_file(animal_id=animal_id, directory=animal_dir)
+    print(f"Found metadata at {metadata_file}")
+    metadata = read_metadata(metadata_file)
+    print(metadata)
+    input("PRESS ENTER KEY TO CONTINUE: >> ")
+    compress_videos(metadata, crf, base_folder, animal_dir)
