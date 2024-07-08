@@ -364,7 +364,7 @@ class ExperimentMetadataApp:
                 # then it actually belongs to session_type
                 return session_type
 
-    def get_bids_session(self, video_path, type = "str"):
+    def get_bids_session(self, video_path, data_type = "str"):
         if isinstance(video_path, Path):
             video_path = str(video_path)
 
@@ -383,7 +383,7 @@ class ExperimentMetadataApp:
         else:
             raise ValueError(f"Cannot find pattern in {video_path}")
 
-    def get_session(self, file_path, type="str", format_in = "%Y-%m-%dT%H-%M-%S", format_out="%Y%m%dT%H%M%S"):
+    def get_session(self, file_path, data_type="str", format_in = "%Y-%m-%dT%H-%M-%S", format_out="%Y%m%dT%H%M%S"):
         '''
         Extracts datetime from the file name based on a specific format and converts it as specified.
         Assumes file names start with datetime pattern like "YYYY-MM-DDTHH-MM-SS_{animal_id}.extension".
@@ -404,11 +404,11 @@ class ExperimentMetadataApp:
         timestamp_str = match.group(1)
         
         # Convert the timestamp based on the desired return type
-        if type == "str":
+        if data_type == "str":
             # Reformat the datetime string according to the specified format
             timestamp_dt = datetime.datetime.strptime(timestamp_str, format_in)
             return timestamp_dt.strftime(format_out)
-        elif type == "dt":
+        elif data_type == "dt":
             # Convert the string to a datetime object
             return datetime.datetime.strptime(timestamp_str, format_in)
 
@@ -442,8 +442,8 @@ class ExperimentMetadataApp:
         for video_path in video_path_list:
             # files from camera get generated as %Y-%m-%dT%H-%M-%S
             # we will coerce to %Y%m%dT%H%M%S
-            session_id = self.get_session(video_path, type = "str", format_in = "%Y-%m-%dT%H-%M-%S")
-            session_dt = self.get_session(video_path, type = "dt", format_in = "%Y-%m-%dT%H-%M-%S")
+            session_id = self.get_session(video_path, data_type = "str", format_in = "%Y-%m-%dT%H-%M-%S")
+            session_dt = self.get_session(video_path, data_type = "dt", format_in = "%Y-%m-%dT%H-%M-%S")
             session_type = self.check_in_range(session_dt)
             # create session metadata dictionary
             self.metadata['session_metadata'][session_id] = {
