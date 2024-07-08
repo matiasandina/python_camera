@@ -387,7 +387,7 @@ class ExperimentMetadataApp:
 
     def find_mp4_videos(self, directory):
         """
-        Not recursive finds all .mp4 video files within the given directory.
+        Recursive finds all .mp4 video files within the given directory.
         :param directory: The directory path as a string or Path object where to start the search.
         :return: A list of Paths to the .mp4 files.
         """
