@@ -394,7 +394,7 @@ class ExperimentMetadataApp:
         # Convert directory to a Path object if it's not already one
         path = Path(directory)
         # Use the rglob method to find all .mp4 files recursively
-        mp4_files = list(path.rglob('*.mp4'))
+        mp4_files = list(path.rglob(f"*{self.metadata['animal_id']}*.mp4"))
         return mp4_files
 
     def collect_session_metadata(self):
@@ -444,9 +444,7 @@ class ExperimentMetadataApp:
             # get the coords for a particular session type
             regions[session_type] = self.get_cropping_coords(video_path)
             print(f"Adding coords for session_type = `{session_type}`")
-            print("Current session metadata:", self.metadata['session_metadata'])
             for key in self.metadata['session_metadata'].keys():
-                print("metadata", self.metadata["session_metadata"][key])
                 if key != 'info' and self.metadata['session_metadata'][key]['session_type'] == session_type:
                     self.metadata['session_metadata'][key]['coords'] = regions[session_type]
         return
