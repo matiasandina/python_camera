@@ -90,11 +90,14 @@ def get_cropping_coords(metadata, session_id):
     # dark_cage_coords = [(397, 80), (396, 325), (497, 329), (501, 83)]
     y_px_tolerance = 10
     # Calculate encompassing Y-boundaries with a tolerance of 10 pixels
+    stacked_coords = np.concatenate((light_cage_coords, dark_cage_coords), axis=0)
 
-    min_y = np.vstack([light_cage_coords, dark_cage_coords]).min(axis = 0)[1]
+    y_coords = [coords[1] for coords in stacked_coords]
+
+    min_y = min(y_coords)
     min_y = max(0, min_y - y_px_tolerance)
 
-    max_y = np.vstack([light_cage_coords, dark_cage_coords]).max(axis = 0)[1]
+    max_y = max(y_coords)
     max_y = min(coords["frame_shape"][1], max_y + y_px_tolerance)
 
     range_y = max_y - min_y
