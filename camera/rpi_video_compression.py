@@ -114,7 +114,7 @@ def call_ffmpeg(input_file, crop_coords, animal_dir, output_file):
     cmd_command = [
             "ffmpeg",
             "-i", input_file,
-            "-vf", f"crop={range_x}:{range_y}:{min_x}:{min_y}",
+            "-vf", f"crop={range_x}:{range_y}:{min_x}:{min_y},hue=s=0",
             "-c:v", "libx264",
             "-crf", f"{crf}",
             "-c:a", "copy",
