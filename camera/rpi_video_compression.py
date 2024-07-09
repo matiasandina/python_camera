@@ -6,6 +6,7 @@ import re
 import pandas as pd
 from pathlib import Path
 import datetime
+import numpy as np
 
 def get_bids_session(file_path, type = "str", format="%Y%m%dTH%M%S"):
     if isinstance(file_path, Path):
@@ -33,16 +34,16 @@ def get_session(file_path, data_type="str", format_in = "%Y-%m-%dT%H-%M-%S", for
         file_path = file_path.name  # Directly get the file name with extension
     else:
         file_path = os.path.basename(str(file_path))  # Ensure we're working with the file name only
-    
+
     # Regex pattern to match the datetime at the start of the file name
     pattern = r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})"
     match = re.search(pattern, file_path)
-    
+
     if not match:
         raise ValueError(f"Cannot find pattern {pattern} in {file_path}")
 
     timestamp_str = match.group(1)
-    
+
     # Convert the timestamp based on the desired return type
     if data_type == "str":
         # Reformat the datetime string according to the specified format
@@ -65,7 +66,7 @@ def find_metadata_file(animal_id, directory):
     if metadata_files == []:
         print(directory)
         raise ValueError("Could not find metadata file. Please make sure it's on path")
-    
+
     if len(metadata_files) > 1:
         print(f"Found these metadata files in {directory}")
         print(metadata_files)
@@ -80,8 +81,6 @@ def read_metadata(parquet_path):
     # We shouldn't have more than one, but it's not asserted
     return df.loc[0, :].to_dict()
 
-
-
 def get_cropping_coords(metadata, session_id):
     coords = metadata["session_metadata"][session_id]["coords"]
     light_cage_coords = coords["light_cage"]
@@ -91,8 +90,13 @@ def get_cropping_coords(metadata, session_id):
     # dark_cage_coords = [(397, 80), (396, 325), (497, 329), (501, 83)]
     y_px_tolerance = 10
     # Calculate encompassing Y-boundaries with a tolerance of 10 pixels
-    min_y = min(coord[1] for coord in light_cage_coords + dark_cage_coords) - y_px_tolerance
-    max_y = max(coord[1] for coord in light_cage_coords + dark_cage_coords) + y_px_tolerance
+
+    min_y = np.vstack([light_cage_coords, dark_cage_coords]).min(axis = 0)[1]
+    min_y = max(0, min_y - y_px_tolerance)
+
+    max_y = np.vstack([light_cage_coords, dark_cage_coords]).max(axis = 0)[1]
+    max_y = min(coords["frame_shape"][1], max_y + y_px_tolerance)
+
     range_y = max_y - min_y
     # this is data we already have but to be consistent with naming
     min_x = 0 # this is hardcoded though
@@ -102,7 +106,7 @@ def get_cropping_coords(metadata, session_id):
     return (range_x, range_y, min_x, min_y)
 
 def call_ffmpeg(input_file, crop_coords, animal_dir, output_file):
-    # unpack cropping coords 
+    # unpack cropping coords
     range_x, range_y, min_x, min_y = crop_coords
     cmd_command = [
             "ffmpeg",
@@ -140,7 +144,7 @@ def compress_videos(metadata, crf, base_folder, animal_dir):
             base_name = os.path.basename(file)
             file_name, file_extension = os.path.splitext(base_name)
             output_file = os.path.join(session_folder, f'sub-{animal_id}_ses-{session_id}_video{file_extension}')
-            
+
             if file_extension == '.mp4':
                 input_file = os.path.join(base_folder, file)
                 crop_coords = get_cropping_coords(metadata, session_id=session_id)
