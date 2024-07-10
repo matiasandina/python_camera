@@ -103,7 +103,7 @@ def get_cropping_coords(metadata, session_id):
     range_y = max_y - min_y
     # this is data we already have but to be consistent with naming
     min_x = 0 # this is hardcoded though
-    range_x = coords["frame_shape"][0]
+    range_x = coords["frame_shape"][1]
     # maybe some assertions here to know we are not trying to get out of the frame
     print(range_x, range_y, min_x, min_y)
     return (range_x, range_y, min_x, min_y)
