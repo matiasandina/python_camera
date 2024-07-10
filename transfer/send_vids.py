@@ -63,7 +63,7 @@ if __name__ =="__main__":
     parser.add_argument("--animal_id", required=True, help="Animal ID for constructing the base path")
     parser.add_argument("--local_folder", required=False, help="Full path of local folder (everything before `animal_id`) if not using default hard-coded one", default=None)
     parser.add_argument("--project_id", required=True, help="Project ID for constructing project path to send videos to. This will construct a project in the form of /volume1/MLA/pilots/project_id. Do not end this with a '/'", default=None)
-    parser.add_argument("--config_path", required=True, help="Path to credentials to establish sftp connection to server/remote computer where data will be sent to.", default=None)
+    parser.add_argument("--config_path", required=False, help="Path to credentials to establish sftp connection to server/remote computer where data will be sent to.", default=None)
     parser.add_argument("--remote_folder", required=False, default=None, help="Remote path to direct the files. Resulting will be {remote_path}/{project_id}")
     args = parser.parse_args()
 
@@ -83,6 +83,14 @@ if __name__ =="__main__":
     else:
         remote_folder = args.remote_folder
         print(f"Using User-Provided remote path: {remote_folder}")
+
+    if args.config_path is not None:
+        config_path = args.config_path
+        print(f"Using User-Provided path: {config_path}")
+    else:
+        config_path = "/home/pi/python_camera/transfer/.config.yaml"
+        print(f"Using hard-coded config path: {config_path}")
+
 
     print(f"Data will be sent to {remote_folder}")
     assert args.config_path is not None
