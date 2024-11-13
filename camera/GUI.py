@@ -16,8 +16,6 @@ class ExperimentMetadataApp:
     def __init__(self, master):
         self.master = master
         master.title("Experiment Metadata Collection")        
-        # Set the window size
-        master.geometry("600x700")         
         # Styling
         self.style_app()
         # Initializing variables
@@ -179,7 +177,7 @@ class ExperimentMetadataApp:
         
         tk.Label(frame, text=session_name, bg=self.main_background).pack(side='left', padx=10)
         
-        start_cal = DateEntry(frame, width=8, background='black', foreground='white', borderwidth=2,
+        start_cal = DateEntry(frame, width=12, background='black', foreground='white', borderwidth=2,
                               normalbackground='#FFFFFF', normalforeground='black', 
                               headerbackground='lightgrey', selectbackground='lightblue', selectforeground='black',
                               date_pattern='yyyy/mm/dd')
@@ -192,7 +190,7 @@ class ExperimentMetadataApp:
         else:
             start_time.insert(0, "HH:MM:SS")
         
-        stop_cal = DateEntry(frame, width=8, background='black', foreground='white', borderwidth=2,                               
+        stop_cal = DateEntry(frame, width=12, background='black', foreground='white', borderwidth=2,                               
                              normalbackground='#FFFFFF', normalforeground='black', 
                              headerbackground='lightgrey', selectbackground='lightblue', selectforeground='black',
                              date_pattern='yyyy/mm/dd')
@@ -505,5 +503,7 @@ class ExperimentMetadataApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
+    root.minsize(800, 600)  
+    root.geometry("800x700")  # Set an initial size that is no less than the minimum.
     app = ExperimentMetadataApp(root)
     root.mainloop()
