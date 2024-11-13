@@ -62,9 +62,10 @@ class ExperimentMetadataApp:
         self.animal_id_entry.grid(row=0, column=1, **row_options)
 
         # Date of Birth
-        tk.Label(self.master, text="Date of Birth (mm/dd/yy):", bg="#FFFFFF").grid(row=1, column=0, **row_options)
+        tk.Label(self.master, text="Date of Birth (yyyy/mm/dd):", bg="#FFFFFF").grid(row=1, column=0, **row_options)
         self.dob_cal = DateEntry(self.master, width=12, background='white', foreground='black', borderwidth=2,
-                         headerbackground='#E0E0E0', selectbackground='#CDDC39', selectforeground='black')
+                         headerbackground='#E0E0E0', selectbackground='#CDDC39', selectforeground='black',
+                         date_pattern = "yyyy/mm/dd")
         self.dob_cal.grid(row=1, column=1, **row_options)
 
         # Sex
@@ -84,7 +85,7 @@ class ExperimentMetadataApp:
         self.fed_entry.grid(row=4, column=1, **row_options)
 
         # Session Management
-        self.session_frame = tk.LabelFrame(self.master, text="Sessions", bg="#FFFFFF", fg="black")
+        self.session_frame = tk.LabelFrame(self.master, text="Sessions (Dates in yyyy/mm/dd format)", bg="#FFFFFF", fg="black")
         self.session_frame.grid(row=5, columnspan=3, sticky='ew', **row_options)
 
         # Input for adding new sessions
@@ -180,7 +181,8 @@ class ExperimentMetadataApp:
         
         start_cal = DateEntry(frame, width=8, background='black', foreground='white', borderwidth=2,
                               normalbackground='#FFFFFF', normalforeground='black', 
-                              headerbackground='lightgrey', selectbackground='lightblue', selectforeground='black')
+                              headerbackground='lightgrey', selectbackground='lightblue', selectforeground='black',
+                              date_pattern='yyyy/mm/dd')
         start_cal.pack(side='left', padx=8)
         start_time = tk.Entry(frame, width=10)
         start_time.pack(side='left', padx=2)
@@ -192,7 +194,8 @@ class ExperimentMetadataApp:
         
         stop_cal = DateEntry(frame, width=8, background='black', foreground='white', borderwidth=2,                               
                              normalbackground='#FFFFFF', normalforeground='black', 
-                             headerbackground='lightgrey', selectbackground='lightblue', selectforeground='black')
+                             headerbackground='lightgrey', selectbackground='lightblue', selectforeground='black',
+                             date_pattern='yyyy/mm/dd')
         stop_cal.pack(side='left', padx=8)
         stop_time = tk.Entry(frame, width=10, background=self.main_background)
         stop_time.pack(side='left', padx=2)
@@ -214,6 +217,14 @@ class ExperimentMetadataApp:
             print(f"Collecting info for session {session_name}")
             start_datetime = self.combine_date_time(start_cal.get_date(), start_time.get())
             stop_datetime = self.combine_date_time(stop_cal.get_date(), stop_time.get())
+                    # Check if the dates are more than a day apart
+            if (stop_datetime - start_datetime).days > 1:
+                confirm = messagebox.askyesno("Date Range Confirmation", 
+                                            "The start and stop dates are more than a day apart. Is this correct?")
+                if not confirm:
+                    print("User chose to adjust the dates.")
+                    frame.config(bg='lightcoral')  # Set to light red indicating adjustment needed
+                    return  # Exit without saving if the user denies confirmation
             self.sessions[session_name] = (start_datetime, stop_datetime)
             print(f"Session {session_name} was saved successfully. Showing all sessions below")
             print(self.sessions)
