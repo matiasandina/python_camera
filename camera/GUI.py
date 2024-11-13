@@ -292,19 +292,30 @@ class ExperimentMetadataApp:
         dob = self.dob_cal.get_date()
         sex = self.sex_var.get()
         mac = self.get_mac()
-        fed = self.fed_entry.get()
-        # things are passed as a list to match requirements from rest of the code
+        fed_new = self.fed_entry.get()
         if self.metadata is None:
             print("Creating new metadata!")
-            self.metadata = self.populate_dictionary(animal_dir = "", animal_id=animal_id, exp_dates=self.sessions, dob=dob, sex = sex, mac=mac, fed=[fed])
-            print(self.metadata) 
-        else: 
+            self.metadata = self.populate_dictionary(animal_dir="", animal_id=animal_id, exp_dates=self.sessions, dob=dob, sex=sex, mac=mac, fed=[fed_new])
+        else:
             print("Saving existing metadata")
-            print(self.metadata) 
+            # Check if the new fed entry is different and needs to be added
+            if fed_new not in self.metadata['fed']:
+                self.metadata['fed'].append(fed_new)
 
-        self.dict_to_parquet()
-        messagebox.showinfo("Metadata Saved", "Metadata was successfully save to file")
+            # Update the existing metadata with new values
+            self.metadata.update({
+                "animal_id": animal_id,
+                "dob": dob,
+                "sex": sex,
+                "mac": mac,
+                "exp_dates": self.sessions  # Make sure sessions are updated if necessary
+            })
 
+        print(self.metadata)
+        if self.dict_to_parquet():
+            messagebox.showinfo("Metadata Saved", "Metadata was successfully saved to file")
+        else:
+            messagebox.showwarning("Save Cancelled", "Save operation was cancelled by the user.")
 
     def flatten_dict(self, data):
         flattened_data = {
@@ -348,6 +359,9 @@ class ExperimentMetadataApp:
             # except OSError as e:
             #     print(f"Error: {e.strerror}. File {e.filename} could not be removed.")
             print("[green]success! [/green]")
+            return True
+        else:
+            return False
 
     def load_metadata(self):
         # Open a file dialog to select the parquet file
