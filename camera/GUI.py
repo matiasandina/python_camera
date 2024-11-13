@@ -113,7 +113,10 @@ class ExperimentMetadataApp:
 
     def trigger_main_py(self):
         if self.metadata is not None:
-            record_name = self.metadata['animal_id'][0]
+            if isinstance(self.metadata['animal_id'], list):
+                record_name = self.metadata['animal_id'][0]  # Get the first element if it's a list
+            else:
+                record_name = self.metadata['animal_id']  # Use the string as is if it's not a list
             try:
                 # Prepare command with arguments
                 args_dict = {
