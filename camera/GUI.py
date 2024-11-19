@@ -462,7 +462,14 @@ class ExperimentMetadataApp:
         else: 
             messagebox.showinfo("Select Directory", "A directory needs to be selected to be able to find videos")
             return
-        print("video paths", video_path_list)
+        
+        # Filter out videos that start with "sub-" (processed video should have BIDS format)
+        processed_videos = [path for path in video_path_list if not path.name.startswith("sub-")]
+
+        if len(processed_videos) < len(video_path_list):
+            messagebox.showwarning("Processed Videos Excluded", f"{len(processed_videos)} appear to be already processed and will not be included for cropping.")
+        
+        print("Unprocessed video paths", processed_videos)
         data = []
         # trigger matching
         for video_path in video_path_list:
