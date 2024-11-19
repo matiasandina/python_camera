@@ -467,12 +467,12 @@ class ExperimentMetadataApp:
         processed_videos = [path for path in video_path_list if not path.name.startswith("sub-")]
 
         if len(processed_videos) < len(video_path_list):
-            messagebox.showwarning("Processed Videos Excluded", f"{len(processed_videos)} appear to be already processed and will not be included for cropping.")
+            messagebox.showwarning("Processed Videos Excluded", f"{len(processed_videos)} videos appear to be already processed and will not be included for cropping.")
         
         print("Unprocessed video paths", processed_videos)
         data = []
         # trigger matching
-        for video_path in video_path_list:
+        for video_path in processed_videos:
             # files from camera get generated as %Y-%m-%dT%H-%M-%S
             # we will coerce to %Y%m%dT%H%M%S
             session_id = self.get_session(video_path, data_type = "str", format_in = "%Y-%m-%dT%H-%M-%S")
